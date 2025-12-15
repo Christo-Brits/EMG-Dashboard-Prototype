@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Folder, FileText, Upload, ChevronRight, ChevronDown, Trash2 } from 'lucide-react';
+import { Folder, FileText, Upload, ChevronRight, ChevronDown, Trash2, X } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import DeleteConfirmModal from '../common/DeleteConfirmModal';
 
@@ -50,13 +50,81 @@ const INITIAL_DOCS = [
     }
 ];
 
+const UploadModal = ({ isOpen, onClose, folders, onUpload }) => {
+    const [selectedFile, setSelectedFile] = useState(null);
+    const [selectedFolderId, setSelectedFolderId] = useState('');
+
+    if (!isOpen) return null;
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        if (selectedFile && selectedFolderId) {
+            onUpload(selectedFile, selectedFolderId);
+            onClose();
+            setSelectedFile(null);
+            setSelectedFolderId('');
+        }
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
+            <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
+                <div className="flex justify-between items-center p-4 border-b border-gray-100">
+                    <h3 className="font-semibold text-gray-800">Upload Document</h3>
+                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+                        <X size={20} />
+                    </button>
+                </div>
+                <form onSubmit={handleSubmit} className="p-6 space-y-4">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Select File</label>
+                        <input
+                            type="file"
+                            required
+                            onChange={(e) => setSelectedFile(e.target.files[0])}
+                            className="block w-full text-sm text-gray-500
+                                file:mr-4 file:py-2 file:px-4
+                                file:rounded-full file:border-0
+                                file:text-sm file:font-semibold
+                                file:bg-blue-50 file:text-blue-700
+                                hover:file:bg-blue-100
+                            "
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Target Folder</label>
+                        <select
+                            required
+                            value={selectedFolderId}
+                            onChange={(e) => setSelectedFolderId(e.target.value)}
+                            className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                        >
+                            <option value="" disabled>Select a folder...</option>
+                            {folders.map(f => (
+                                <option key={f.id} value={f.id}>{f.name}</option>
+                            ))}
+                        </select>
+                    </div>
+                    <div className="pt-2 flex justify-end gap-2">
+                        <button type="button" onClick={onClose} className="btn btn-ghost text-sm">Cancel</button>
+                        <button type="submit" className="btn btn-primary text-sm flex items-center gap-2">
+                            <Upload size={16} /> Upload Now
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+};
+
 const DocumentsTab = () => {
-    const { isAdmin } = useAuth();
+    const { user, isAdmin } = useAuth();
     const [docs, setDocs] = useState(INITIAL_DOCS);
     const [expandedFolders, setExpandedFolders] = useState(['folder-1', 'folder-2', 'folder-3', 'folder-4']);
 
-    // Delete State
+    // Modal States
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+    const [uploadModalOpen, setUploadModalOpen] = useState(false);
     const [fileToDelete, setFileToDelete] = useState(null);
 
     const toggleFolder = (folderId) => {
@@ -83,8 +151,26 @@ const DocumentsTab = () => {
         }
     };
 
-    const handleUpload = () => {
-        alert("Upload logic would go here. (Prototype only)");
+    const handleExecuteUpload = (file, folderId) => {
+        const newFile = {
+            id: `new-${Date.now()}`,
+            name: file.name,
+            type: file.name.split('.').pop().toUpperCase(),
+            author: user ? user.name : 'Unknown',
+            date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
+        };
+
+        setDocs(prev => prev.map(folder => {
+            if (folder.id === folderId) {
+                return { ...folder, items: [newFile, ...folder.items] };
+            }
+            return folder;
+        }));
+
+        // Auto-expand the target folder so the user sees their new file
+        if (!expandedFolders.includes(folderId)) {
+            setExpandedFolders(prev => [...prev, folderId]);
+        }
     };
 
     return (
@@ -97,13 +183,20 @@ const DocumentsTab = () => {
                 itemType="document"
             />
 
+            <UploadModal
+                isOpen={uploadModalOpen}
+                onClose={() => setUploadModalOpen(false)}
+                folders={docs}
+                onUpload={handleExecuteUpload}
+            />
+
             {/* Calm Header Line */}
             <div className="bg-blue-50/50 border border-blue-100 p-4 rounded-lg mb-6 flex items-start sm:items-center justify-between gap-4">
                 <p className="text-sm text-blue-800">
                     All project documentation is stored and accessed centrally to ensure clarity and version control.
                 </p>
                 <button
-                    onClick={handleUpload}
+                    onClick={() => setUploadModalOpen(true)}
                     className="btn btn-outline bg-white text-xs whitespace-nowrap gap-2 hover:bg-blue-50 border-blue-200 text-blue-700"
                 >
                     <Upload size={14} /> Upload Document
