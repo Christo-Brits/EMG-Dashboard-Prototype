@@ -11,7 +11,7 @@ const Shell = () => {
             <header className="bg-white border-b border-[var(--color-border)] h-16 flex items-center px-6 sticky top-0 z-50">
                 <div className="container flex items-center justify-between h-full">
                     <Link to="/dashboard" className="flex items-center gap-2">
-                        <img src="/logo.png" alt="EMG Logo" className="h-8 w-auto object-contain" />
+                        <img src={`${import.meta.env.BASE_URL}logo.png`} alt="EMG Logo" className="h-8 w-auto object-contain" />
                     </Link>
                     <div className="flex items-center gap-4">
                         {isAdmin && <span className="bg-indigo-100 text-indigo-700 text-xs font-bold px-2 py-1 rounded border border-indigo-200 uppercase tracking-wide">Admin Mode</span>}

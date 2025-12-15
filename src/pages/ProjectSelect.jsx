@@ -25,7 +25,7 @@ const ProjectSelect = () => {
                 <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-600 to-cyan-500"></div>
 
                 <div className="mb-8 flex flex-col items-center">
-                    <img src="/logo.png" alt="EMG Logo" className="h-14 w-auto mb-4" />
+                    <img src={`${import.meta.env.BASE_URL}logo.png`} alt="EMG Logo" className="h-14 w-auto mb-4" />
                     <h1 className="text-2xl font-bold text-gray-800 text-center">Project Portal</h1>
                     <p className="text-gray-500 text-sm mt-2 text-center">Select your project to securely access site updates and documentation.</p>
                 </div>

@@ -28,7 +28,7 @@ const Login = () => {
                 </button>
 
                 <div className="mb-8 text-center sm:text-left">
-                    <img src="/logo.png" alt="EMG Logo" className="h-12 w-auto mb-6 mx-auto sm:mx-0" />
+                    <img src={`${import.meta.env.BASE_URL}logo.png`} alt="EMG Logo" className="h-12 w-auto mb-6 mx-auto sm:mx-0" />
                     <h1 className="text-2xl font-bold text-[var(--color-brand-primary)]">South Mall New World</h1>
                     <p className="text-gray-500 mt-1">
                         {isLoginMode ? 'Welcome back. Please log in.' : 'Setup your account to access the project portal.'}
