@@ -1,18 +1,17 @@
 import React, { useState, useRef } from 'react';
 import { Calendar, Tag, Trash2, Upload, Plus, Camera } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { PROJECTS } from '../../data/mockData';
 import { useProjectData } from '../../context/ProjectContext';
 import DeleteConfirmModal from '../common/DeleteConfirmModal';
 
 const PhotosTab = () => {
     const { isAdmin } = useAuth();
-
     const { photos, addPhoto, deletePhoto } = useProjectData();
 
     const [showUpload, setShowUpload] = useState(false);
     const [newPhoto, setNewPhoto] = useState({ desc: '', tag: 'Progress', src: '' });
     const fileInputRef = useRef(null);
+    const [isCompressing, setIsCompressing] = useState(false);
 
     // Delete State
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -30,14 +29,47 @@ const PhotosTab = () => {
         }
     };
 
-    const handleFileChange = (e) => {
+    const compressImage = (file) => {
+        return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = (event) => {
+                const img = new Image();
+                img.src = event.target.result;
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    const MAX_WIDTH = 800;
+                    const scaleSize = MAX_WIDTH / img.width;
+                    const width = (img.width > MAX_WIDTH) ? MAX_WIDTH : img.width;
+                    const height = (img.width > MAX_WIDTH) ? (img.height * scaleSize) : img.height;
+
+                    canvas.width = width;
+                    canvas.height = height;
+
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    // Compress to JPEG 0.7 quality
+                    const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+                    resolve(dataUrl);
+                };
+            };
+        });
+    };
+
+    const handleFileChange = async (e) => {
         const file = e.target.files[0];
         if (file) {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setNewPhoto(prev => ({ ...prev, src: reader.result }));
-            };
-            reader.readAsDataURL(file);
+            setIsCompressing(true);
+            try {
+                const compressedSrc = await compressImage(file);
+                setNewPhoto(prev => ({ ...prev, src: compressedSrc }));
+            } catch (error) {
+                console.error("Compression failed", error);
+                alert("Failed to process image.");
+            } finally {
+                setIsCompressing(false);
+            }
         }
     };
 
@@ -132,16 +164,19 @@ const PhotosTab = () => {
                                 <button
                                     type="button"
                                     onClick={triggerFileInput}
+                                    disabled={isCompressing}
                                     className={`flex-1 p-2 text-sm border rounded flex items-center justify-center gap-2 transition-colors ${newPhoto.src ? 'bg-green-50 text-green-700 border-green-200' : 'bg-white text-gray-500 border-gray-300 hover:bg-gray-50'}`}
                                 >
-                                    {newPhoto.src ? (
-                                        <>
-                                            <Camera size={16} /> Photo Selected
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Upload size={16} /> Upload form Device / Camera
-                                        </>
+                                    {isCompressing ? 'Compressing...' : (
+                                        newPhoto.src ? (
+                                            <>
+                                                <Camera size={16} /> Photo Selected
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Upload size={16} /> Upload form Device / Camera
+                                            </>
+                                        )
                                     )}
                                 </button>
                             </div>
@@ -162,7 +197,7 @@ const PhotosTab = () => {
 
                         <div className="flex justify-end gap-2 pt-2">
                             <button type="button" onClick={() => setShowUpload(false)} className="btn btn-outline text-xs bg-white">Cancel</button>
-                            <button type="submit" className="btn btn-primary text-xs" disabled={!newPhoto.src}>Save Photo</button>
+                            <button type="submit" className="btn btn-primary text-xs" disabled={!newPhoto.src || isCompressing}>Save Photo</button>
                         </div>
                     </form>
                 </div>

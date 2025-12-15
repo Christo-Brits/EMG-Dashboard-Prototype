@@ -25,7 +25,10 @@ const usePersistentState = (key, initialValue) => {
         try {
             localStorage.setItem(STORAGE_PREFIX + key, JSON.stringify(state));
         } catch (error) {
-            console.warn(`Error setting localStorage key "${key}":`, error);
+            console.error(`Error setting localStorage key "${key}":`, error);
+            if (error.name === 'QuotaExceededError' || error.code === 22) {
+                alert("⚠️ Storage Full! Your changes cannot be saved. Please delete some photos or documents.");
+            }
         }
     }, [key, state]);
 
