@@ -14,6 +14,7 @@ import OverviewTab from './components/project/OverviewTab';
 import UpdatesTab from './components/project/UpdatesTab';
 import PhotosTab from './components/project/PhotosTab';
 import ActionsTab from './components/project/ActionsTab';
+import DocumentsTab from './components/project/DocumentsTab';
 import QATab from './components/project/QATab';
 
 function App() {
@@ -32,6 +33,7 @@ function App() {
                 <Route path="updates" element={<UpdatesTab />} />
                 <Route path="photos" element={<PhotosTab />} />
                 <Route path="actions" element={<ActionsTab />} />
+                <Route path="documents" element={<DocumentsTab />} />
                 <Route path="qa" element={<QATab />} />
               </Route>
               <Route path="/question/:id" element={<QADetail />} />

@@ -21,6 +21,7 @@ const ProjectDashboard = () => {
         { name: 'Overview', path: 'overview' },
         { name: 'Updates', path: 'updates' },
         { name: 'Photos', path: 'photos' },
+        { name: 'Documents', path: 'documents' },
         { name: 'Actions', path: 'actions' },
         { name: 'Q&A', path: 'qa' },
     ];
