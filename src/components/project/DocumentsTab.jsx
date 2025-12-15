@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { Folder, FileText, Upload, ChevronRight, ChevronDown, File } from 'lucide-react';
+import { Folder, FileText, Upload, ChevronRight, ChevronDown, Trash2 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import DeleteConfirmModal from '../common/DeleteConfirmModal';
 
-const MOCK_DOCS = [
+const INITIAL_DOCS = [
     {
         id: 'folder-1',
         name: 'Drawings',
@@ -51,7 +52,12 @@ const MOCK_DOCS = [
 
 const DocumentsTab = () => {
     const { isAdmin } = useAuth();
+    const [docs, setDocs] = useState(INITIAL_DOCS);
     const [expandedFolders, setExpandedFolders] = useState(['folder-1', 'folder-2', 'folder-3', 'folder-4']);
+
+    // Delete State
+    const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+    const [fileToDelete, setFileToDelete] = useState(null);
 
     const toggleFolder = (folderId) => {
         setExpandedFolders(prev =>
@@ -61,12 +67,36 @@ const DocumentsTab = () => {
         );
     };
 
+    const confirmDelete = (e, fileId) => {
+        e.stopPropagation();
+        setFileToDelete(fileId);
+        setDeleteModalOpen(true);
+    };
+
+    const handleExecuteDelete = () => {
+        if (fileToDelete) {
+            setDocs(prev => prev.map(folder => ({
+                ...folder,
+                items: folder.items.filter(item => item.id !== fileToDelete)
+            })));
+            setFileToDelete(null);
+        }
+    };
+
     const handleUpload = () => {
         alert("Upload logic would go here. (Prototype only)");
     };
 
     return (
         <div className="max-w-6xl mx-auto">
+            <DeleteConfirmModal
+                isOpen={deleteModalOpen}
+                onClose={() => setDeleteModalOpen(false)}
+                onConfirm={handleExecuteDelete}
+                title="Delete Document"
+                itemType="document"
+            />
+
             {/* Calm Header Line */}
             <div className="bg-blue-50/50 border border-blue-100 p-4 rounded-lg mb-6 flex items-start sm:items-center justify-between gap-4">
                 <p className="text-sm text-blue-800">
@@ -89,7 +119,7 @@ const DocumentsTab = () => {
                 </div>
 
                 <div className="divide-y divide-gray-100">
-                    {MOCK_DOCS.map(folder => {
+                    {docs.map(folder => {
                         const isExpanded = expandedFolders.includes(folder.id);
                         return (
                             <React.Fragment key={folder.id}>
@@ -113,12 +143,22 @@ const DocumentsTab = () => {
 
                                 {/* File Rows (if expanded) */}
                                 {isExpanded && folder.items.map(file => (
-                                    <div key={file.id} className="grid grid-cols-12 items-center py-2.5 px-4 bg-slate-50/30 hover:bg-blue-50/30 border-l-4 border-l-transparent hover:border-l-blue-400 transition-all pl-12">
+                                    <div key={file.id} className="grid grid-cols-12 items-center py-2.5 px-4 bg-slate-50/30 hover:bg-blue-50/30 border-l-4 border-l-transparent hover:border-l-blue-400 transition-all pl-12 group/file">
                                         <div className="col-span-6 flex items-center gap-3">
                                             <FileText size={16} className="text-gray-400" />
-                                            <span className="text-sm text-gray-600 hover:text-gray-900 hover:underline cursor-pointer truncate">
+                                            <span className="text-sm text-gray-600 hover:text-gray-900 hover:underline cursor-pointer truncate mr-2">
                                                 {file.name}
                                             </span>
+
+                                            {isAdmin && (
+                                                <button
+                                                    onClick={(e) => confirmDelete(e, file.id)}
+                                                    className="text-gray-300 hover:text-red-500 opacity-0 group-hover/file:opacity-100 transition-all p-1"
+                                                    title="Delete Document"
+                                                >
+                                                    <Trash2 size={14} />
+                                                </button>
+                                            )}
                                         </div>
                                         <div className="col-span-2 text-xs text-gray-500 font-mono bg-gray-100 inline-block px-1.5 py-0.5 rounded w-fit">{file.type}</div>
                                         <div className="col-span-2 text-xs text-gray-500">{file.author}</div>
