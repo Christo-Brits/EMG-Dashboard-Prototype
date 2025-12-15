@@ -120,3 +120,42 @@ export const QA = [
         replies: []
     }
 ];
+
+export const DOCUMENTS = [
+    {
+        id: 'folder-1',
+        name: 'Drawings',
+        type: 'folder',
+        items: [
+            { id: 'f1-1', name: 'Drawing_A101_RevC.pdf', type: 'PDF', author: 'Consultant (Arch)', date: '10 Dec 2025' },
+            { id: 'f1-2', name: 'Drawing_S204_RevB.pdf', type: 'PDF', author: 'Consultant (Struct)', date: '08 Dec 2025' },
+            { id: 'f1-3', name: 'Layout_Plan_Ground.dwg', type: 'DWG', author: 'Consultant (Arch)', date: '01 Dec 2025' },
+        ]
+    },
+    {
+        id: 'folder-2',
+        name: 'RFIs & Technical Queries',
+        type: 'folder',
+        items: [
+            { id: 'f2-1', name: 'RFI_012_BakeryFloorLevels.pdf', type: 'PDF', author: 'EMG (Christo)', date: '12 Dec 2025' },
+            { id: 'f2-2', name: 'TQ_004_SteelConnection.pdf', type: 'PDF', author: 'Contractor', date: '05 Dec 2025' },
+        ]
+    },
+    {
+        id: 'folder-3',
+        name: 'Reports & Inspections',
+        type: 'folder',
+        items: [
+            { id: 'f3-1', name: 'Weekly_Site_Report_2025-12-08.pdf', type: 'PDF', author: 'EMG', date: '08 Dec 2025' },
+            { id: 'f3-2', name: 'Safety_Audit_Nov25.pdf', type: 'PDF', author: 'Safety Officer', date: '30 Nov 2025' },
+        ]
+    },
+    {
+        id: 'folder-4',
+        name: 'Site Instructions',
+        type: 'folder',
+        items: [
+            { id: 'f4-1', name: 'SI_003_PaintSpecChange.pdf', type: 'PDF', author: 'Client', date: '03 Dec 2025' }
+        ]
+    }
+];

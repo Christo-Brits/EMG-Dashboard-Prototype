@@ -2,20 +2,13 @@ import React, { useState, useRef } from 'react';
 import { Calendar, Tag, Trash2, Upload, Plus, Camera } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { PROJECTS } from '../../data/mockData';
+import { useProjectData } from '../../context/ProjectContext';
 import DeleteConfirmModal from '../common/DeleteConfirmModal';
 
 const PhotosTab = () => {
     const { isAdmin } = useAuth();
 
-    const baseImage = PROJECTS[0].image;
-    const [photos, setPhotos] = useState([
-        { id: 1, src: baseImage, date: '14 Dec 2025', tag: 'Exterior', desc: 'North Elevation completion' },
-        { id: 2, src: 'https://images.unsplash.com/photo-1541888946425-d81bb19240f5?auto=format&fit=crop&q=80&w=2070', date: '12 Dec 2025', tag: 'Site Works', desc: 'Excavation for Zone C' },
-        { id: 3, src: 'https://images.unsplash.com/photo-1590644365607-1c5a38fc43e0?auto=format&fit=crop&q=80&w=2043', date: '10 Dec 2025', tag: 'Interior', desc: 'Cold store panel installation' },
-        { id: 4, src: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&q=80&w=2070', date: '08 Dec 2025', tag: 'Safety', desc: 'Site safety briefing area' },
-        { id: 5, src: 'https://images.unsplash.com/photo-1531834685032-c34bf0d84c77?auto=format&fit=crop&q=80&w=1997', date: '05 Dec 2025', tag: 'Structure', desc: 'Steel beams arrival' },
-        { id: 6, src: 'https://images.unsplash.com/photo-1581094794329-c8112a89af12?auto=format&fit=crop&q=80&w=2000', date: '01 Dec 2025', tag: 'Progress', desc: 'Foundation pouring' },
-    ]);
+    const { photos, addPhoto, deletePhoto } = useProjectData();
 
     const [showUpload, setShowUpload] = useState(false);
     const [newPhoto, setNewPhoto] = useState({ desc: '', tag: 'Progress', src: '' });
@@ -32,7 +25,7 @@ const PhotosTab = () => {
 
     const handleExecuteDelete = () => {
         if (photoToDelete) {
-            setPhotos(prev => prev.filter(p => p.id !== photoToDelete));
+            deletePhoto(photoToDelete);
             setPhotoToDelete(null);
         }
     };
@@ -63,7 +56,7 @@ const PhotosTab = () => {
             tag: newPhoto.tag,
             desc: newPhoto.desc
         };
-        setPhotos(prev => [photo, ...prev]);
+        addPhoto(photo);
         setShowUpload(false);
         setNewPhoto({ desc: '', tag: 'Progress', src: '' });
     };

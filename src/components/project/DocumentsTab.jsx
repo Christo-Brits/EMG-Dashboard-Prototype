@@ -1,54 +1,8 @@
 import React, { useState } from 'react';
 import { Folder, FileText, Upload, ChevronRight, ChevronDown, Trash2, X } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useProjectData } from '../../context/ProjectContext';
 import DeleteConfirmModal from '../common/DeleteConfirmModal';
-
-const INITIAL_DOCS = [
-    {
-        id: 'folder-1',
-        name: 'Drawings',
-        type: 'folder',
-        author: '-',
-        date: '-',
-        items: [
-            { id: 'f1-1', name: 'Drawing_A101_RevC.pdf', type: 'PDF', author: 'Consultant (Arch)', date: '10 Dec 2025' },
-            { id: 'f1-2', name: 'Drawing_S204_RevB.pdf', type: 'PDF', author: 'Consultant (Struct)', date: '08 Dec 2025' },
-            { id: 'f1-3', name: 'Layout_Plan_Ground.dwg', type: 'DWG', author: 'Consultant (Arch)', date: '01 Dec 2025' },
-        ]
-    },
-    {
-        id: 'folder-2',
-        name: 'RFIs & Technical Queries',
-        type: 'folder',
-        author: '-',
-        date: '-',
-        items: [
-            { id: 'f2-1', name: 'RFI_012_BakeryFloorLevels.pdf', type: 'PDF', author: 'EMG (Christo)', date: '12 Dec 2025' },
-            { id: 'f2-2', name: 'TQ_004_SteelConnection.pdf', type: 'PDF', author: 'Contractor', date: '05 Dec 2025' },
-        ]
-    },
-    {
-        id: 'folder-3',
-        name: 'Reports & Inspections',
-        type: 'folder',
-        author: '-',
-        date: '-',
-        items: [
-            { id: 'f3-1', name: 'Weekly_Site_Report_2025-12-08.pdf', type: 'PDF', author: 'EMG', date: '08 Dec 2025' },
-            { id: 'f3-2', name: 'Safety_Audit_Nov25.pdf', type: 'PDF', author: 'Safety Officer', date: '30 Nov 2025' },
-        ]
-    },
-    {
-        id: 'folder-4',
-        name: 'Site Instructions',
-        type: 'folder',
-        author: '-',
-        date: '-',
-        items: [
-            { id: 'f4-1', name: 'SI_003_PaintSpecChange.pdf', type: 'PDF', author: 'Client', date: '03 Dec 2025' }
-        ]
-    }
-];
 
 const UploadModal = ({ isOpen, onClose, folders, onUpload }) => {
     const [selectedFile, setSelectedFile] = useState(null);
@@ -119,7 +73,10 @@ const UploadModal = ({ isOpen, onClose, folders, onUpload }) => {
 
 const DocumentsTab = () => {
     const { user, isAdmin } = useAuth();
-    const [docs, setDocs] = useState(INITIAL_DOCS);
+
+    // Use Context Data
+    const { documents, addDocument, deleteDocument } = useProjectData();
+
     const [expandedFolders, setExpandedFolders] = useState(['folder-1', 'folder-2', 'folder-3', 'folder-4']);
 
     // Modal States
@@ -143,29 +100,13 @@ const DocumentsTab = () => {
 
     const handleExecuteDelete = () => {
         if (fileToDelete) {
-            setDocs(prev => prev.map(folder => ({
-                ...folder,
-                items: folder.items.filter(item => item.id !== fileToDelete)
-            })));
+            deleteDocument(fileToDelete);
             setFileToDelete(null);
         }
     };
 
     const handleExecuteUpload = (file, folderId) => {
-        const newFile = {
-            id: `new-${Date.now()}`,
-            name: file.name,
-            type: file.name.split('.').pop().toUpperCase(),
-            author: user ? user.name : 'Unknown',
-            date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
-        };
-
-        setDocs(prev => prev.map(folder => {
-            if (folder.id === folderId) {
-                return { ...folder, items: [newFile, ...folder.items] };
-            }
-            return folder;
-        }));
+        addDocument(file, folderId, user ? user.name : 'Unknown');
 
         // Auto-expand the target folder so the user sees their new file
         if (!expandedFolders.includes(folderId)) {
@@ -186,7 +127,7 @@ const DocumentsTab = () => {
             <UploadModal
                 isOpen={uploadModalOpen}
                 onClose={() => setUploadModalOpen(false)}
-                folders={docs}
+                folders={documents}
                 onUpload={handleExecuteUpload}
             />
 
@@ -212,7 +153,7 @@ const DocumentsTab = () => {
                 </div>
 
                 <div className="divide-y divide-gray-100">
-                    {docs.map(folder => {
+                    {documents.map(folder => {
                         const isExpanded = expandedFolders.includes(folder.id);
                         return (
                             <React.Fragment key={folder.id}>
