@@ -3,12 +3,13 @@ import { getFirestore } from "firebase/firestore";
 
 // TODO: Replace with user's config
 const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_PROJECT_ID.appspot.com",
-    messagingSenderId: "SENDER_ID",
-    appId: "APP_ID"
+    apiKey: "AIzaSyDPu6NgnUI-D33CqzARDEq9fbhUfDeX13I",
+    authDomain: "emg-dashboard-prototype.firebaseapp.com",
+    projectId: "emg-dashboard-prototype",
+    storageBucket: "emg-dashboard-prototype.firebasestorage.app",
+    messagingSenderId: "380024752912",
+    appId: "1:380024752912:web:0e4959eab50bc2bd987395",
+    measurementId: "G-SDTNKNR9WP"
 };
 
 const app = initializeApp(firebaseConfig);

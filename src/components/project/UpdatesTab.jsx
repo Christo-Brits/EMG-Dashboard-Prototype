@@ -1,11 +1,16 @@
 import React, { useState } from 'react';
 import { useProjectData } from '../../context/ProjectContext';
 import { useAuth } from '../../context/AuthContext';
-import { User, Calendar, Plus } from 'lucide-react';
+import { User, Calendar, Plus, MoreHorizontal, Trash2, Edit2, X, Check } from 'lucide-react';
 
 const UpdatesTab = () => {
-    const { updates, addUpdate } = useProjectData();
+    const { updates, addUpdate, deleteUpdate, updateUpdate } = useProjectData();
     const { user, isAdmin } = useAuth();
+
+    // Edit/Delete State
+    const [openMenuId, setOpenMenuId] = useState(null);
+    const [editingId, setEditingId] = useState(null);
+    const [editContent, setEditContent] = useState('');
 
     const [showForm, setShowForm] = useState(false);
     const [newUpdate, setNewUpdate] = useState('');
@@ -22,6 +27,23 @@ const UpdatesTab = () => {
         });
         setNewUpdate('');
         setShowForm(false);
+    };
+
+    const startEditing = (update) => {
+        setEditingId(update.id);
+        setEditContent(update.content);
+        setOpenMenuId(null);
+    };
+
+    const saveEdit = (id) => {
+        updateUpdate(id, { content: editContent });
+        setEditingId(null);
+    };
+
+    const handleDelete = (id) => {
+        if (window.confirm("Are you sure you want to delete this update?")) {
+            deleteUpdate(id);
+        }
     };
 
     return (
@@ -95,8 +117,52 @@ const UpdatesTab = () => {
                                 <span className="badge badge-neutral bg-gray-100 text-gray-600">{update.tag}</span>
                             </div>
                             <p className="text-gray-700 leading-relaxed text-sm">
-                                {update.content}
+                                {editingId === update.id ? (
+                                    <div className="mt-2">
+                                        <textarea
+                                            className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 mb-2"
+                                            rows="3"
+                                            value={editContent}
+                                            onChange={(e) => setEditContent(e.target.value)}
+                                        />
+                                        <div className="flex justify-end gap-2">
+                                            <button onClick={() => setEditingId(null)} className="btn btn-sm btn-outline text-xs">Cancel</button>
+                                            <button onClick={() => saveEdit(update.id)} className="btn btn-sm btn-primary text-xs">Save</button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    update.content
+                                )}
                             </p>
+
+                            {/* Admin Controls */}
+                            {isAdmin && !editingId && (
+                                <div className="absolute top-4 right-4">
+                                    <button
+                                        onClick={() => setOpenMenuId(openMenuId === update.id ? null : update.id)}
+                                        className="text-gray-400 hover:text-gray-600 transition-colors"
+                                    >
+                                        <MoreHorizontal size={16} />
+                                    </button>
+
+                                    {openMenuId === update.id && (
+                                        <div className="absolute right-0 mt-1 w-32 bg-white border border-gray-200 shadow-lg rounded-md overflow-hidden z-20 animate-in fade-in zoom-in-95 duration-200">
+                                            <button
+                                                onClick={() => startEditing(update)}
+                                                className="w-full text-left px-3 py-2 text-xs flex items-center gap-2 hover:bg-gray-50 text-gray-700"
+                                            >
+                                                <Edit2 size={12} /> Edit
+                                            </button>
+                                            <button
+                                                onClick={() => handleDelete(update.id)}
+                                                className="w-full text-left px-3 py-2 text-xs flex items-center gap-2 hover:bg-red-50 text-red-600"
+                                            >
+                                                <Trash2 size={12} /> Delete
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     </div>
                 ))}

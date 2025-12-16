@@ -129,6 +129,14 @@ export const ProjectProvider = ({ children }) => {
 
     // --- Updates ---
     const addUpdate = (update) => addToCollection('updates', update);
+    const deleteUpdate = (id) => {
+        const item = updates.find(u => u.id === id);
+        if (item) deleteFromCollection('updates', item.firestoreId);
+    };
+    const updateUpdate = (id, newContent) => {
+        const item = updates.find(u => u.id === id);
+        if (item) updateInCollection('updates', item.firestoreId, newContent);
+    };
 
     // --- Actions ---
     const addAction = (action) => addToCollection('actions', { ...action, status: 'Open' });
@@ -233,6 +241,8 @@ export const ProjectProvider = ({ children }) => {
             photos,
             updateProjectDetails,
             addUpdate,
+            deleteUpdate,
+            updateUpdate,
             addAction,
             updateActionStatus,
             deleteAction,
