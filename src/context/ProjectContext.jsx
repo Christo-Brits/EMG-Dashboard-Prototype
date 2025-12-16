@@ -1,128 +1,193 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { PROJECTS, UPDATES, ACTIONS, QA, DOCUMENTS } from '../data/mockData';
+import { db } from '../config/firebase';
+import {
+    collection,
+    doc,
+    onSnapshot,
+    addDoc,
+    updateDoc,
+    deleteDoc,
+    setDoc,
+    query,
+    orderBy
+} from 'firebase/firestore';
 
 const ProjectContext = createContext();
 
 export const useProjectData = () => useContext(ProjectContext);
 
-// Encryption key for local storage (simple prefix)
-const STORAGE_PREFIX = 'emg_portal_v1_';
-
-const usePersistentState = (key, initialValue) => {
-    // Lazy initialization to read from storage once on mount
-    const [state, setState] = useState(() => {
-        try {
-            const storedValue = localStorage.getItem(STORAGE_PREFIX + key);
-            return storedValue ? JSON.parse(storedValue) : initialValue;
-        } catch (error) {
-            console.warn(`Error reading localStorage key "${key}":`, error);
-            return initialValue;
-        }
-    });
-
-    // Sync to storage whenever state changes
-    useEffect(() => {
-        try {
-            localStorage.setItem(STORAGE_PREFIX + key, JSON.stringify(state));
-        } catch (error) {
-            console.error(`Error setting localStorage key "${key}":`, error);
-            if (error.name === 'QuotaExceededError' || error.code === 22) {
-                alert("⚠️ Storage Full! Your changes cannot be saved. Please delete some photos or documents.");
-            }
-        }
-    }, [key, state]);
-
-    return [state, setState];
-};
+// Hardcoded project ID for the prototype
+const PROJECT_ID = 'south-mall';
 
 export const ProjectProvider = ({ children }) => {
-    // Use persistent state for all data types
-    const [projects, setProjects] = usePersistentState('projects', PROJECTS);
-    const [updates, setUpdates] = usePersistentState('updates', UPDATES);
-    const [actions, setActions] = usePersistentState('actions', ACTIONS);
-    const [qa, setQa] = usePersistentState('qa', QA);
-    const [documents, setDocuments] = usePersistentState('documents', DOCUMENTS);
+    // Initial states (will be populated by Firestore)
+    const [projects, setProjects] = useState(PROJECTS);
+    const [updates, setUpdates] = useState([]);
+    const [actions, setActions] = useState([]);
+    const [qa, setQa] = useState([]);
+    const [documents, setDocuments] = useState([]);
+    const [photos, setPhotos] = useState([]);
 
-    // Also store photos separately if needed, but typically they are part of project/updates context. 
-    // For this prototype, photos in 'PhotosTab' are local. We should persist them if we want full persistence.
-    // NOTE: PhotosTab logic was fully local in previous steps. To persist photos, we need to lift that state here.
-    // For now, let's persist the requested items: Updates, Docs, Q&A, Actions.
-    // If the user uploads photos in PhotosTab, we need to handle that via a new context state or just let it reset.
-    // Given the prompt "updating photos... when we login again", I'll add a 'photos' state here too.
+    // --- Firestore Subscriptions ---
+    useEffect(() => {
+        if (!db) return;
 
-    // If photos are empty (first load), might want to seed them.
-    // For now we start empty or with storage value.
-    const [photos, setPhotos] = usePersistentState('photos', [
-        { id: 1, src: PROJECTS[0].image, date: '14 Dec 2025', tag: 'Exterior', desc: 'North Elevation completion' },
-        { id: 2, src: 'https://images.unsplash.com/photo-1541888946425-d81bb19240f5?auto=format&fit=crop&q=80&w=2070', date: '12 Dec 2025', tag: 'Site Works', desc: 'Excavation for Zone C' },
-        { id: 3, src: 'https://images.unsplash.com/photo-1590644365607-1c5a38fc43e0?auto=format&fit=crop&q=80&w=2043', date: '10 Dec 2025', tag: 'Interior', desc: 'Cold store panel installation' },
-        { id: 4, src: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&q=80&w=2070', date: '08 Dec 2025', tag: 'Safety', desc: 'Site safety briefing area' },
-        { id: 5, src: 'https://images.unsplash.com/photo-1531834685032-c34bf0d84c77?auto=format&fit=crop&q=80&w=1997', date: '05 Dec 2025', tag: 'Structure', desc: 'Steel beams arrival' },
-        { id: 6, src: 'https://images.unsplash.com/photo-1581094794329-c8112a89af12?auto=format&fit=crop&q=80&w=2000', date: '01 Dec 2025', tag: 'Progress', desc: 'Foundation pouring' },
-    ]);
-    // Note: The previous PhotosTab implementation used internal File objects which can't be stringified. 
-    // We will need to store base64 strings or URLs. 
-    // The current PhotosTab relies on URL.createObjectURL or FileReader which produces big strings.
-    // LocalStorage has a 5MB limit. Storing many base64 images WILL break it.
-    // Strategy: We will persist metadata, but warn about storage limits or only store small thumbnails.
-    // For a prototype, we'll try storing the base64, but if it fails, we handle error.
+        // 1. Projects (Just syncing the main project doc details if we were fully cloud, 
+        // but for now we keep PROJECTS mock for the list and just update the specific project from DB if needed.
+        // Keeping projects local/mock for the "Select" screen simplicity unless expanded.)
 
-    // --- Project Details ---
-    const updateProjectDetails = (id, newDetails) => {
-        setProjects(prev => prev.map(p => p.id === id ? { ...p, ...newDetails } : p));
+        // 2. Updates
+        const updatesRef = collection(db, 'projects', PROJECT_ID, 'updates');
+        const qUpdates = query(updatesRef, orderBy('id', 'desc'));
+        // Note: 'id' in mock data was timestamp-ish number. 
+        // We'll trust the creation time or just sort client side if needed.
+
+        const unsubUpdates = onSnapshot(updatesRef, (snapshot) => {
+            const data = snapshot.docs.map(doc => ({ ...doc.data(), firestoreId: doc.id }));
+            // Sort by date/id desc
+            data.sort((a, b) => b.id - a.id);
+            setUpdates(data.length > 0 ? data : UPDATES); // Fallback to mock if empty (optional, maybe better to start empty)
+        }, (err) => console.error("Updates Sync Error:", err));
+
+        // 3. Actions
+        const actionsRef = collection(db, 'projects', PROJECT_ID, 'actions');
+        const unsubActions = onSnapshot(actionsRef, (snapshot) => {
+            const data = snapshot.docs.map(doc => ({ ...doc.data(), firestoreId: doc.id }));
+            setActions(data.length > 0 ? data : ACTIONS);
+        });
+
+        // 4. Q&A
+        const qaRef = collection(db, 'projects', PROJECT_ID, 'qa');
+        const unsubOA = onSnapshot(qaRef, (snapshot) => {
+            const data = snapshot.docs.map(doc => ({ ...doc.data(), firestoreId: doc.id }));
+            data.sort((a, b) => b.id - a.id);
+            setQa(data.length > 0 ? data : QA);
+        });
+
+        // 5. Photos
+        const photosRef = collection(db, 'projects', PROJECT_ID, 'photos');
+        const unsubPhotos = onSnapshot(photosRef, (snapshot) => {
+            const data = snapshot.docs.map(doc => ({ ...doc.data(), firestoreId: doc.id }));
+            data.sort((a, b) => b.id - a.id);
+            setPhotos(data); // If empty, we might want to seed?
+        });
+
+        // 6. Documents (Stored as a single JSON blob for hierarchy structure)
+        const docStructRef = doc(db, 'projects', PROJECT_ID, 'data', 'documents');
+        const unsubDocs = onSnapshot(docStructRef, (docSnap) => {
+            if (docSnap.exists()) {
+                setDocuments(docSnap.data().structure);
+            } else {
+                // If it doesn't exist yet, initialize it
+                setDoc(docStructRef, { structure: DOCUMENTS });
+                setDocuments(DOCUMENTS);
+            }
+        });
+
+        return () => {
+            unsubUpdates();
+            unsubActions();
+            unsubOA();
+            unsubPhotos();
+            unsubDocs();
+        };
+    }, []);
+
+    // --- Write Functions ---
+
+    // Generic helper to add to a subcollection
+    const addToCollection = async (collectionName, item) => {
+        const newItem = { ...item, id: Date.now() }; // Ensure numeric ID for sort
+        try {
+            await addDoc(collection(db, 'projects', PROJECT_ID, collectionName), newItem);
+        } catch (e) {
+            console.error(`Error adding to ${collectionName}:`, e);
+            alert("Sync Error: Check your Firebase Config.");
+        }
+    };
+
+    // Generic helper to delete
+    const deleteFromCollection = async (collectionName, firestoreId) => {
+        if (!firestoreId) return;
+        try {
+            await deleteDoc(doc(db, 'projects', PROJECT_ID, collectionName, firestoreId));
+        } catch (e) {
+            console.error(`Error deleting from ${collectionName}:`, e);
+        }
+    };
+
+    // Generic helper to update
+    const updateInCollection = async (collectionName, firestoreId, updates) => {
+        if (!firestoreId) return;
+        try {
+            await updateDoc(doc(db, 'projects', PROJECT_ID, collectionName, firestoreId), updates);
+        } catch (e) {
+            console.error(`Error updating ${collectionName}:`, e);
+        }
     };
 
     // --- Updates ---
-    const addUpdate = (update) => {
-        const newUpdate = { ...update, id: Date.now() };
-        setUpdates(prev => [newUpdate, ...prev]);
-    };
+    const addUpdate = (update) => addToCollection('updates', update);
 
     // --- Actions ---
-    const addAction = (action) => {
-        const newAction = { ...action, id: Date.now(), status: 'Open' };
-        setActions(prev => [...prev, newAction]);
-    };
-
+    const addAction = (action) => addToCollection('actions', { ...action, status: 'Open' });
     const updateActionStatus = (id, status) => {
-        setActions(prev => prev.map(a => a.id === id ? { ...a, status } : a));
+        const item = actions.find(a => a.id === id);
+        if (item) updateInCollection('actions', item.firestoreId, { status });
     };
-
     const deleteAction = (id) => {
-        setActions(prev => prev.filter(a => a.id !== id));
+        const item = actions.find(a => a.id === id);
+        if (item) deleteFromCollection('actions', item.firestoreId);
     };
 
     // --- Q&A ---
     const addQuestion = (question) => {
-        const newQuestion = {
+        addToCollection('qa', {
             ...question,
-            id: Date.now(),
             status: 'Open',
             replies: [],
             date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
-        };
-        setQa(prev => [newQuestion, ...prev]);
+        });
     };
 
     const addReply = (questionId, replyContent, author) => {
-        setQa(prev => prev.map(q => {
-            if (q.id.toString() === questionId.toString()) {
-                const newReply = {
-                    author: author,
-                    date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
-                    content: replyContent
-                };
-                return { ...q, replies: [...q.replies, newReply], status: 'Answered' };
-            }
-            return q;
-        }));
+        // We need to find the doc, get its current replies, and update array
+        // Firestore 'arrayUnion' is better but we have object array. 
+        // Simplest: Read client state, update, write back.
+        const thread = qa.find(q => q.id.toString() === questionId.toString());
+        if (thread) {
+            const newReply = {
+                author: author,
+                date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
+                content: replyContent
+            };
+            const updatedReplies = [...thread.replies, newReply];
+            updateInCollection('qa', thread.firestoreId, { replies: updatedReplies, status: 'Answered' });
+        }
     };
 
     const deleteQuestion = (id) => {
-        setQa(prev => prev.filter(q => q.id !== id));
+        const item = qa.find(q => q.id === id);
+        if (item) deleteFromCollection('qa', item.firestoreId);
     };
 
-    // --- Documents ---
+    // --- Photos ---
+    const addPhoto = (photo) => addToCollection('photos', photo);
+    const deletePhoto = (id) => {
+        const item = photos.find(p => p.id === id);
+        if (item) deleteFromCollection('photos', item.firestoreId);
+    };
+
+    // --- Documents (Full Structure Update) ---
+    const saveDocumentsStruture = async (newDocs) => {
+        try {
+            await setDoc(doc(db, 'projects', PROJECT_ID, 'data', 'documents'), { structure: newDocs });
+        } catch (e) {
+            console.error("Error saving docs:", e);
+        }
+    };
+
     const addDocument = (file, folderId, author) => {
         const newFile = {
             id: `new-${Date.now()}`,
@@ -132,30 +197,30 @@ export const ProjectProvider = ({ children }) => {
             date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
         };
 
-        setDocuments(prev => prev.map(folder => {
+        const newDocs = documents.map(folder => {
             if (folder.id === folderId) {
                 return { ...folder, items: [newFile, ...folder.items] };
             }
             return folder;
-        }));
+        });
+        // Optimistic update
+        setDocuments(newDocs);
+        saveDocumentsStruture(newDocs);
     };
 
     const deleteDocument = (fileId) => {
-        setDocuments(prev => prev.map(folder => ({
+        const newDocs = documents.map(folder => ({
             ...folder,
             items: folder.items.filter(item => item.id !== fileId)
-        })));
+        }));
+        setDocuments(newDocs);
+        saveDocumentsStruture(newDocs);
     };
 
-    // --- Photos (Simple Metadata Persistence) ---
-    // This allows other components to register photos. 
-    // We will modify PhotosTab to use this instead of local state.
-    const addPhoto = (photo) => {
-        setPhotos(prev => [photo, ...prev]);
-    };
-
-    const deletePhoto = (id) => {
-        setPhotos(prev => prev.filter(p => p.id !== id));
+    // --- Project Details ---
+    const updateProjectDetails = (id, newDetails) => {
+        setProjects(prev => prev.map(p => p.id === id ? { ...p, ...newDetails } : p));
+        // Note: Not syncing this to firestore in this phase as it's less critical/mocked
     };
 
     return (
