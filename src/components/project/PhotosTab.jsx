@@ -5,7 +5,7 @@ import { useProjectData } from '../../context/ProjectContext';
 import DeleteConfirmModal from '../common/DeleteConfirmModal';
 
 const PhotosTab = () => {
-    const { isAdmin } = useAuth();
+    const { user, isAdmin } = useAuth();
     const { photos, addPhoto, deletePhoto } = useProjectData();
 
     const [showUpload, setShowUpload] = useState(false);
@@ -127,7 +127,7 @@ const PhotosTab = () => {
             {/* Upload Modal (Simplified inline) */}
             {showUpload && (
                 <div className="bg-gray-50 border border-dashed border-gray-300 rounded-lg p-4 mb-6 animate-in fade-in">
-                    <h3 className="font-bold text-gray-700 text-sm mb-3">Add New Photo</h3>
+                    <h3 className="font-bold text-gray-700 text-sm mb-3">Upload Site Photo</h3>
                     <form onSubmit={handleUpload} className="space-y-3">
                         <div>
                             <input
@@ -174,7 +174,7 @@ const PhotosTab = () => {
                                             </>
                                         ) : (
                                             <>
-                                                <Upload size={16} /> Upload form Device / Camera
+                                                <Upload size={16} /> Select from Device
                                             </>
                                         )
                                     )}
@@ -203,40 +203,50 @@ const PhotosTab = () => {
                 </div>
             )}
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-                {photos.map((photo) => (
-                    <div key={photo.id} className="group cursor-pointer relative">
-                        <div className="aspect-[4/3] bg-gray-100 rounded-md overflow-hidden relative border border-gray-200 mb-3">
-                            <img
-                                src={photo.src}
-                                alt={photo.desc}
-                                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                            />
-                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors"></div>
-
-                            {isAdmin && (
-                                <button
-                                    onClick={(e) => { e.stopPropagation(); confirmDelete(photo.id); }}
-                                    className="absolute top-2 right-2 bg-red-600 text-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-700 z-10"
-                                    title="Delete Photo"
-                                >
-                                    <Trash2 size={14} />
-                                </button>
-                            )}
-                        </div>
-
-                        <div>
-                            <div className="flex justify-between items-start">
-                                <h3 className="text-sm font-medium text-[var(--color-brand-primary)] group-hover:text-[var(--color-accent)] transition-colors line-clamp-1">{photo.desc}</h3>
-                            </div>
-                            <div className="flex items-center gap-3 mt-1 text-xs text-[var(--color-text-secondary)]">
-                                <span className="flex items-center gap-1"><Calendar size={12} /> {photo.date}</span>
-                                <span className="flex items-center gap-1"><Tag size={12} /> {photo.tag}</span>
-                            </div>
-                        </div>
+            {photos.length === 0 ? (
+                <div className="text-center py-16 text-gray-400">
+                    <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
+                        <Camera size={28} className="text-gray-300" />
                     </div>
-                ))}
-            </div>
+                    <p className="text-sm font-medium text-gray-500 mb-1">No site photos uploaded yet</p>
+                    <p className="text-xs text-gray-400">Photos will appear here as they are added by the project team</p>
+                </div>
+            ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+                    {photos.map((photo) => (
+                        <div key={photo.id} className="group cursor-pointer relative">
+                            <div className="aspect-[4/3] bg-gray-100 rounded-md overflow-hidden relative border border-gray-200 mb-3">
+                                <img
+                                    src={photo.src}
+                                    alt={photo.desc}
+                                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                />
+                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors"></div>
+
+                                {isAdmin && (
+                                    <button
+                                        onClick={(e) => { e.stopPropagation(); confirmDelete(photo.id); }}
+                                        className="absolute top-2 right-2 bg-red-600 text-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-700 z-10"
+                                        title="Delete Photo"
+                                    >
+                                        <Trash2 size={14} />
+                                    </button>
+                                )}
+                            </div>
+
+                            <div>
+                                <div className="flex justify-between items-start">
+                                    <h3 className="text-sm font-medium text-[var(--color-brand-primary)] group-hover:text-[var(--color-accent)] transition-colors line-clamp-1">{photo.desc}</h3>
+                                </div>
+                                <div className="flex items-center gap-3 mt-1 text-xs text-[var(--color-text-secondary)]">
+                                    <span className="flex items-center gap-1"><Calendar size={12} /> {photo.date}</span>
+                                    <span className="flex items-center gap-1"><Tag size={12} /> {photo.tag}</span>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
         </div>
     );
 };

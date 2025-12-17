@@ -134,7 +134,7 @@ const DocumentsTab = () => {
             {/* Calm Header Line */}
             <div className="bg-blue-50/50 border border-blue-100 p-4 rounded-lg mb-6 flex items-start sm:items-center justify-between gap-4">
                 <p className="text-sm text-blue-800">
-                    All project documentation is stored and accessed centrally to ensure clarity and version control.
+                    Project documentation is stored centrally for version control and transparency.
                 </p>
                 <button
                     onClick={() => setUploadModalOpen(true)}

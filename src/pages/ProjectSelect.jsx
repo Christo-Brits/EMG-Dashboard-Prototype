@@ -27,7 +27,7 @@ const ProjectSelect = () => {
                 <div className="mb-8 flex flex-col items-center">
                     <img src={`${import.meta.env.BASE_URL}logo.png`} alt="EMG Logo" className="h-14 w-auto mb-4" />
                     <h1 className="text-2xl font-bold text-gray-800 text-center">Project Portal</h1>
-                    <p className="text-gray-500 text-sm mt-2 text-center">Select your project to securely access site updates and documentation.</p>
+                    <p className="text-gray-500 text-sm mt-2 text-center">Select your project to access site updates and documentation.</p>
                 </div>
 
                 <div className="space-y-4">
@@ -39,7 +39,7 @@ const ProjectSelect = () => {
                                 value={selectedProject}
                                 onChange={(e) => setSelectedProject(e.target.value)}
                             >
-                                <option value="" disabled>Choose active engagement...</option>
+                                <option value="" disabled>Select a project...</option>
                                 {PROJECTS.map(p => (
                                     <option key={p.id} value={p.id}>{p.name}</option>
                                 ))}

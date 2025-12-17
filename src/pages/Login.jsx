@@ -31,7 +31,7 @@ const Login = () => {
                     <img src={`${import.meta.env.BASE_URL}logo.png`} alt="EMG Logo" className="h-12 w-auto mb-6 mx-auto sm:mx-0" />
                     <h1 className="text-2xl font-bold text-[var(--color-brand-primary)]">South Mall New World</h1>
                     <p className="text-gray-500 mt-1">
-                        {isLoginMode ? 'Welcome back. Please log in.' : 'Setup your account to access the project portal.'}
+                        {isLoginMode ? 'Welcome back. Sign in to continue.' : 'Create your account to access the project portal.'}
                     </p>
                 </div>
 
@@ -85,7 +85,7 @@ const Login = () => {
                 </div>
 
                 <div className="mt-6 pt-6 border-t border-gray-100 text-center text-xs text-gray-400">
-                    By continuing, you agree to the EMG Portal Terms of Use.
+                    By continuing, you agree to the EMG Portal Terms of Service.
                 </div>
             </div>
         </div>

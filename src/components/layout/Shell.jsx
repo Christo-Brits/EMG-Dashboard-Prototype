@@ -14,7 +14,7 @@ const Shell = () => {
                         <img src={`${import.meta.env.BASE_URL}logo.png`} alt="EMG Logo" className="h-8 w-auto object-contain" />
                     </Link>
                     <div className="flex items-center gap-4">
-                        {isAdmin && <span className="bg-indigo-100 text-indigo-700 text-xs font-bold px-2 py-1 rounded border border-indigo-200 uppercase tracking-wide">Admin Mode</span>}
+                        {isAdmin && <span className="bg-slate-800 text-white text-xs font-medium px-2.5 py-1 rounded">Admin</span>}
 
                         {user ? (
                             <div className="flex items-center gap-3 pl-4 border-l border-gray-200">
@@ -43,7 +43,7 @@ const Shell = () => {
                 <Outlet />
             </main>
             <footer className="h-12 border-t border-[var(--color-border)] bg-white flex items-center justify-center text-sm text-[var(--color-text-secondary)]">
-                &copy; 2025 EMG. Early Access Preview.
+                © 2025 EMG Project Management. All rights reserved.
             </footer>
         </div>
     );

@@ -19,11 +19,11 @@ const ProjectDashboard = () => {
 
     const tabs = [
         { name: 'Overview', path: 'overview' },
-        { name: 'Updates', path: 'updates' },
-        { name: 'Photos', path: 'photos' },
+        { name: 'Progress Updates', path: 'updates' },
+        { name: 'Site Photos', path: 'photos' },
         { name: 'Documents', path: 'documents' },
-        { name: 'Actions', path: 'actions' },
-        { name: 'Q&A', path: 'qa' },
+        { name: 'Actions & Follow-Ups', path: 'actions' },
+        { name: 'Project Questions', path: 'qa' },
     ];
 
     return (
