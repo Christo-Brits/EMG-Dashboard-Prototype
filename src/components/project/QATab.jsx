@@ -32,7 +32,7 @@ const QATab = () => {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        addQuestion(newQuestion);
+        addQuestion(newQuestion, user?.name || 'Unknown');
         setNewQuestion({ title: '', context: '', category: 'RFI' });
         setShowForm(false);
     };

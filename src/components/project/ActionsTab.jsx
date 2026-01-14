@@ -34,7 +34,7 @@ const ActionsTab = () => {
 
     const handleCreate = (e) => {
         e.preventDefault();
-        addAction(newTask);
+        addAction(newTask.task, newTask.assignedTo, newTask.dueDate);
         setNewTask({ task: '', assignedTo: '', dueDate: '' });
         setShowForm(false);
     };

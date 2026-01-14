@@ -138,8 +138,30 @@ export const ProjectProvider = ({ children }) => {
         }
     };
 
-    // --- Updates ---
-    const addUpdate = (update) => addToCollection('updates', update);
+    // --- File Input Helper ---
+    const uploadFile = async (file, path) => {
+        if (!file) return null;
+        const storageRef = ref(storage, path);
+        await uploadBytes(storageRef, file);
+        return await getDownloadURL(storageRef);
+    };
+
+    // --- Specific Add Functions ---
+
+    const addUpdate = (text, author) => {
+        const timestamp = new Date().toLocaleString('en-US', {
+            weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+        });
+        const date = new Date().toISOString().split('T')[0];
+
+        addToCollection('updates', {
+            text,
+            author,
+            timestamp,
+            date,
+            type: 'progress'
+        });
+    };
     const deleteUpdate = (id) => {
         const item = updates.find(u => u.id === id);
         if (item) deleteFromCollection('updates', item.firestoreId);
@@ -150,7 +172,14 @@ export const ProjectProvider = ({ children }) => {
     };
 
     // --- Actions ---
-    const addAction = (action) => addToCollection('actions', { ...action, status: 'Open' });
+    const addAction = (text, assignee, dueDate) => {
+        addToCollection('actions', {
+            text,
+            assignee,
+            dueDate,
+            status: 'Open'
+        });
+    };
     const updateActionStatus = (id, status) => {
         const item = actions.find(a => a.id === id);
         if (item) updateInCollection('actions', item.firestoreId, { status });
@@ -161,9 +190,11 @@ export const ProjectProvider = ({ children }) => {
     };
 
     // --- Q&A ---
-    const addQuestion = (question) => {
+    // --- Q&A ---
+    const addQuestion = (question, author) => {
         addToCollection('qa', {
-            ...question,
+            question,
+            author,
             status: 'Open',
             replies: [],
             date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
@@ -192,7 +223,30 @@ export const ProjectProvider = ({ children }) => {
     };
 
     // --- Photos ---
-    const addPhoto = (photo) => addToCollection('photos', photo);
+    // --- Photos ---
+    const addPhoto = async (file, caption, author) => {
+        if (!activeProjectId) return;
+
+        // 1. Upload to Storage
+        const fileName = `${Date.now()}_${file.name}`;
+        const path = `projects/${activeProjectId}/photos/${fileName}`;
+
+        try {
+            const url = await uploadFile(file, path);
+
+            // 2. Save metadata to Firestore
+            addToCollection('photos', {
+                url, // Now a remote URL
+                caption,
+                author,
+                date: new Date().toLocaleDateString(),
+                timestamp: Date.now()
+            });
+        } catch (error) {
+            console.error("Error uploading photo:", error);
+            alert("Failed to upload photo.");
+        }
+    };
     const deletePhoto = (id) => {
         const item = photos.find(p => p.id === id);
         if (item) deleteFromCollection('photos', item.firestoreId);
@@ -208,24 +262,39 @@ export const ProjectProvider = ({ children }) => {
         }
     };
 
-    const addDocument = (file, folderId, author) => {
-        const newFile = {
-            id: `new-${Date.now()}`,
-            name: file.name,
-            type: file.name.split('.').pop().toUpperCase(),
-            author: author,
-            date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
-        };
+    const addDocument = async (fileObj, folderId, author) => {
+        if (!activeProjectId) return;
 
-        const newDocs = documents.map(folder => {
-            if (folder.id === folderId) {
-                return { ...folder, items: [newFile, ...folder.items] };
-            }
-            return folder;
-        });
-        // Optimistic update
-        setDocuments(newDocs);
-        saveDocumentsStruture(newDocs);
+        try {
+            // Upload if it's a real file
+            const fileName = `${Date.now()}_${fileObj.name}`;
+            const path = `projects/${activeProjectId}/documents/${fileName}`;
+            const fileUrl = await uploadFile(fileObj, path);
+
+            const newFile = {
+                id: Date.now(),
+                name: fileObj.name,
+                type: fileObj.name.split('.').pop().toUpperCase(),
+                author: author,
+                date: new Date().toLocaleDateString(),
+                url: fileUrl, // Remote URL
+                size: (fileObj.size / 1024).toFixed(1) + ' KB'
+            };
+
+            const updatedDocs = documents.map(folder => {
+                if (folder.id === folderId) {
+                    return { ...folder, items: [newFile, ...folder.items] };
+                }
+                return folder;
+            });
+            // Optimistic update
+            setDocuments(updatedDocs);
+            saveDocumentsStruture(updatedDocs);
+
+        } catch (error) {
+            console.error("Error uploading document:", error);
+            alert("Failed to upload document.");
+        }
     };
 
     const deleteDocument = (fileId) => {

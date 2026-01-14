@@ -16,18 +16,11 @@ const UpdatesTab = () => {
     const [newUpdate, setNewUpdate] = useState('');
     const [tag, setTag] = useState('Progress');
 
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        addUpdate({
-            projectId: 'south-mall', // Hardcoded for prototype
-            date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
-            author: `${user.name} (EMG)`,
-            content: newUpdate,
-            tag: tag
-        });
+    if (newUpdate.trim()) {
+        addUpdate(newUpdate, user?.name || 'Unknown');
         setNewUpdate('');
         setShowForm(false);
-    };
+    }
 
     const startEditing = (update) => {
         setEditingId(update.id);

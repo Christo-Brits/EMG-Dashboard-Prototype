@@ -9,9 +9,9 @@ const PhotosTab = () => {
     const { photos, addPhoto, deletePhoto } = useProjectData();
 
     const [showUpload, setShowUpload] = useState(false);
-    const [newPhoto, setNewPhoto] = useState({ desc: '', tag: 'Progress', src: '' });
+    const [newPhoto, setNewPhoto] = useState({ desc: '', tag: 'Progress', file: null, preview: '' });
     const fileInputRef = useRef(null);
-    const [isCompressing, setIsCompressing] = useState(false);
+    const [isUploading, setIsUploading] = useState(false);
 
     // Delete State
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -57,40 +57,29 @@ const PhotosTab = () => {
         });
     };
 
-    const handleFileChange = async (e) => {
+    const handleFileChange = (e) => {
         const file = e.target.files[0];
         if (file) {
-            setIsCompressing(true);
-            try {
-                const compressedSrc = await compressImage(file);
-                setNewPhoto(prev => ({ ...prev, src: compressedSrc }));
-            } catch (error) {
-                console.error("Compression failed", error);
-                alert("Failed to process image.");
-            } finally {
-                setIsCompressing(false);
-            }
+            // Create a preview
+            const previewUrl = URL.createObjectURL(file);
+            setNewPhoto(prev => ({ ...prev, file: file, preview: previewUrl }));
         }
     };
 
-    const handleUpload = (e) => {
+    const handleUpload = async (e) => {
         e.preventDefault();
 
-        if (!newPhoto.src) {
+        if (!newPhoto.file) {
             alert("Please select a photo first.");
             return;
         }
 
-        const photo = {
-            id: Date.now(),
-            src: newPhoto.src,
-            date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
-            tag: newPhoto.tag,
-            desc: newPhoto.desc
-        };
-        addPhoto(photo);
+        setIsUploading(true);
+        await addPhoto(newPhoto.file, newPhoto.desc, user?.name || 'Unknown');
+        setIsUploading(false);
+
         setShowUpload(false);
-        setNewPhoto({ desc: '', tag: 'Progress', src: '' });
+        setNewPhoto({ desc: '', tag: 'Progress', file: null, preview: '' });
     };
 
     const triggerFileInput = () => {
@@ -164,11 +153,11 @@ const PhotosTab = () => {
                                 <button
                                     type="button"
                                     onClick={triggerFileInput}
-                                    disabled={isCompressing}
-                                    className={`flex-1 p-2 text-sm border rounded flex items-center justify-center gap-2 transition-colors ${newPhoto.src ? 'bg-green-50 text-green-700 border-green-200' : 'bg-white text-gray-500 border-gray-300 hover:bg-gray-50'}`}
+                                    disabled={isUploading}
+                                    className={`flex-1 p-2 text-sm border rounded flex items-center justify-center gap-2 transition-colors ${newPhoto.preview ? 'bg-green-50 text-green-700 border-green-200' : 'bg-white text-gray-500 border-gray-300 hover:bg-gray-50'}`}
                                 >
-                                    {isCompressing ? 'Compressing...' : (
-                                        newPhoto.src ? (
+                                    {isUploading ? 'Uploading...' : (
+                                        newPhoto.preview ? (
                                             <>
                                                 <Camera size={16} /> Photo Selected
                                             </>
@@ -182,12 +171,12 @@ const PhotosTab = () => {
                             </div>
                         </div>
 
-                        {newPhoto.src && (
+                        {newPhoto.preview && (
                             <div className="relative h-32 w-full rounded-lg overflow-hidden border border-gray-200 bg-black/5">
-                                <img src={newPhoto.src} alt="Preview" className="w-full h-full object-contain" />
+                                <img src={newPhoto.preview} alt="Preview" className="w-full h-full object-contain" />
                                 <button
                                     type="button"
-                                    onClick={() => setNewPhoto({ ...newPhoto, src: '' })}
+                                    onClick={() => setNewPhoto({ ...newPhoto, file: null, preview: '' })}
                                     className="absolute top-2 right-2 bg-black/50 text-white rounded-full p-1 hover:bg-black/70"
                                 >
                                     <Trash2 size={12} />
@@ -197,7 +186,7 @@ const PhotosTab = () => {
 
                         <div className="flex justify-end gap-2 pt-2">
                             <button type="button" onClick={() => setShowUpload(false)} className="btn btn-outline text-xs bg-white">Cancel</button>
-                            <button type="submit" className="btn btn-primary text-xs" disabled={!newPhoto.src || isCompressing}>Save Photo</button>
+                            <button type="submit" className="btn btn-primary text-xs" disabled={!newPhoto.file || isUploading}>Save Photo</button>
                         </div>
                     </form>
                 </div>
@@ -217,8 +206,8 @@ const PhotosTab = () => {
                         <div key={photo.id} className="group cursor-pointer relative">
                             <div className="aspect-[4/3] bg-gray-100 rounded-md overflow-hidden relative border border-gray-200 mb-3">
                                 <img
-                                    src={photo.src}
-                                    alt={photo.desc}
+                                    src={photo.url || photo.src} // Handle old (src) vs new (url)
+                                    alt={photo.desc || photo.caption} // Handle old vs new
                                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                                 />
                                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors"></div>
@@ -236,7 +225,7 @@ const PhotosTab = () => {
 
                             <div>
                                 <div className="flex justify-between items-start">
-                                    <h3 className="text-sm font-medium text-[var(--color-brand-primary)] group-hover:text-[var(--color-accent)] transition-colors line-clamp-1">{photo.desc}</h3>
+                                    <h3 className="text-sm font-medium text-[var(--color-brand-primary)] group-hover:text-[var(--color-accent)] transition-colors line-clamp-1">{photo.caption || photo.desc}</h3>
                                 </div>
                                 <div className="flex items-center gap-3 mt-1 text-xs text-[var(--color-text-secondary)]">
                                     <span className="flex items-center gap-1"><Calendar size={12} /> {photo.date}</span>

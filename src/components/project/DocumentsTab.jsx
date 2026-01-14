@@ -83,6 +83,7 @@ const DocumentsTab = () => {
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
     const [uploadModalOpen, setUploadModalOpen] = useState(false);
     const [fileToDelete, setFileToDelete] = useState(null);
+    const [isUploading, setIsUploading] = useState(false);
 
     const toggleFolder = (folderId) => {
         setExpandedFolders(prev =>
@@ -105,12 +106,19 @@ const DocumentsTab = () => {
         }
     };
 
-    const handleExecuteUpload = (file, folderId) => {
-        addDocument(file, folderId, user ? user.name : 'Unknown');
+    const handleExecuteUpload = async (file, folderId) => {
+        setIsUploading(true);
+        try {
+            await addDocument(file, folderId, user ? user.name : 'Unknown');
 
-        // Auto-expand the target folder so the user sees their new file
-        if (!expandedFolders.includes(folderId)) {
-            setExpandedFolders(prev => [...prev, folderId]);
+            // Auto-expand the target folder
+            if (!expandedFolders.includes(folderId)) {
+                setExpandedFolders(prev => [...prev, folderId]);
+            }
+        } catch (error) {
+            console.error("Upload failed", error);
+        } finally {
+            setIsUploading(false);
         }
     };
 
@@ -138,9 +146,10 @@ const DocumentsTab = () => {
                 </p>
                 <button
                     onClick={() => setUploadModalOpen(true)}
-                    className="btn btn-outline bg-white text-xs whitespace-nowrap gap-2 hover:bg-blue-50 border-blue-200 text-blue-700"
+                    disabled={isUploading}
+                    className="btn btn-outline bg-white text-xs whitespace-nowrap gap-2 hover:bg-blue-50 border-blue-200 text-blue-700 disabled:opacity-50"
                 >
-                    <Upload size={14} /> Upload Document
+                    {isUploading ? <span className="animate-pulse">Uploading...</span> : <><Upload size={14} /> Upload Document</>}
                 </button>
             </div>
 
