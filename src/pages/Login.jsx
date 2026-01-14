@@ -37,6 +37,7 @@ const Login = () => {
             if (err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password') msg = "Invalid email or password.";
             if (err.code === 'auth/email-already-in-use') msg = "Email already in use.";
             if (err.code === 'auth/weak-password') msg = "Password is too weak (min 6 chars).";
+            if (err.code === 'auth/user-not-found') msg = "Account not found. Please Sign Up first.";
             setError(msg);
         }
         setLoading(false);
