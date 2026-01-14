@@ -5,15 +5,33 @@ import { useAuth } from '../context/AuthContext';
 
 const Login = () => {
     const navigate = useNavigate();
-    const { login } = useAuth();
-    const [isLoginMode, setIsLoginMode] = useState(false);
+    const { login, signup } = useAuth();
+    const [isLoginMode, setIsLoginMode] = useState(true);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [error, setError] = useState('');
+    const [loading, setLoading] = useState(false);
 
-    const handleLogin = (e) => {
+    const handleAuth = async (e) => {
         e.preventDefault();
-        login(email);
-        navigate('/project/south-mall');
+        setError('');
+        setLoading(true);
+        try {
+            if (isLoginMode) {
+                await login(email, password);
+            } else {
+                await signup(email, password);
+            }
+            navigate('/project/south-mall');
+        } catch (err) {
+            console.error("Auth Error:", err);
+            let msg = "Failed to authenticate.";
+            if (err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password') msg = "Invalid email or password.";
+            if (err.code === 'auth/email-already-in-use') msg = "Email already in use.";
+            if (err.code === 'auth/weak-password') msg = "Password is too weak (min 6 chars).";
+            setError(msg);
+        }
+        setLoading(false);
     };
 
     return (
@@ -27,7 +45,7 @@ const Login = () => {
                     <ChevronLeft size={16} /> Back to Project Selection
                 </button>
 
-                <div className="mb-8 text-center sm:text-left">
+                <div className="mb-6 text-center sm:text-left">
                     <img src={`${import.meta.env.BASE_URL}logo.png`} alt="EMG Logo" className="h-12 w-auto mb-6 mx-auto sm:mx-0" />
                     <h1 className="text-2xl font-bold text-[var(--color-brand-primary)]">South Mall New World</h1>
                     <p className="text-gray-500 mt-1">
@@ -35,7 +53,13 @@ const Login = () => {
                     </p>
                 </div>
 
-                <form onSubmit={handleLogin} className="space-y-5">
+                {error && (
+                    <div className="mb-4 bg-red-50 text-red-600 text-sm p-3 rounded-lg border border-red-100 flex items-center justify-center">
+                        {error}
+                    </div>
+                )}
+
+                <form onSubmit={handleAuth} className="space-y-5">
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
                         <input
@@ -66,10 +90,11 @@ const Login = () => {
 
                     <button
                         type="submit"
-                        className="btn btn-primary w-full py-3 mt-2 gap-2"
+                        disabled={loading}
+                        className="btn btn-primary w-full py-3 mt-2 gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
                     >
-                        {isLoginMode ? 'Log In' : 'Create Account & Enter'}
-                        <ArrowRight size={16} />
+                        {loading ? 'Processing...' : (isLoginMode ? 'Log In' : 'Create Account & Enter')}
+                        {!loading && <ArrowRight size={16} />}
                     </button>
                 </form>
 
