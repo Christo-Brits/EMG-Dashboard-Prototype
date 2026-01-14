@@ -17,11 +17,11 @@ const ProjectContext = createContext();
 
 export const useProjectData = () => useContext(ProjectContext);
 
-// Hardcoded project ID for the prototype
-const PROJECT_ID = 'south-mall';
+// Initial Logic removed. We now use activeProjectId state.
 
 export const ProjectProvider = ({ children }) => {
     // Initial states (will be populated by Firestore)
+    const [activeProjectId, setActiveProjectId] = useState(null);
     const [projects, setProjects] = useState(PROJECTS);
     const [updates, setUpdates] = useState([]);
     const [actions, setActions] = useState([]);
@@ -31,14 +31,24 @@ export const ProjectProvider = ({ children }) => {
 
     // --- Firestore Subscriptions ---
     useEffect(() => {
-        if (!db) return;
+        if (!db || !activeProjectId) {
+            // Reset state if no project selected
+            setUpdates([]);
+            setActions([]);
+            setQa([]);
+            setPhotos([]);
+            setDocuments([]);
+            return;
+        }
+
+        const PID = activeProjectId;
 
         // 1. Projects (Just syncing the main project doc details if we were fully cloud, 
         // but for now we keep PROJECTS mock for the list and just update the specific project from DB if needed.
         // Keeping projects local/mock for the "Select" screen simplicity unless expanded.)
 
         // 2. Updates
-        const updatesRef = collection(db, 'projects', PROJECT_ID, 'updates');
+        const updatesRef = collection(db, 'projects', PID, 'updates');
         const qUpdates = query(updatesRef, orderBy('id', 'desc'));
         // Note: 'id' in mock data was timestamp-ish number. 
         // We'll trust the creation time or just sort client side if needed.
@@ -51,14 +61,14 @@ export const ProjectProvider = ({ children }) => {
         }, (err) => console.error("Updates Sync Error:", err));
 
         // 3. Actions
-        const actionsRef = collection(db, 'projects', PROJECT_ID, 'actions');
+        const actionsRef = collection(db, 'projects', PID, 'actions');
         const unsubActions = onSnapshot(actionsRef, (snapshot) => {
             const data = snapshot.docs.map(doc => ({ ...doc.data(), firestoreId: doc.id }));
             setActions(data.length > 0 ? data : ACTIONS);
         });
 
         // 4. Q&A
-        const qaRef = collection(db, 'projects', PROJECT_ID, 'qa');
+        const qaRef = collection(db, 'projects', PID, 'qa');
         const unsubOA = onSnapshot(qaRef, (snapshot) => {
             const data = snapshot.docs.map(doc => ({ ...doc.data(), firestoreId: doc.id }));
             data.sort((a, b) => b.id - a.id);
@@ -66,7 +76,7 @@ export const ProjectProvider = ({ children }) => {
         });
 
         // 5. Photos
-        const photosRef = collection(db, 'projects', PROJECT_ID, 'photos');
+        const photosRef = collection(db, 'projects', PID, 'photos');
         const unsubPhotos = onSnapshot(photosRef, (snapshot) => {
             const data = snapshot.docs.map(doc => ({ ...doc.data(), firestoreId: doc.id }));
             data.sort((a, b) => b.id - a.id);
@@ -74,7 +84,7 @@ export const ProjectProvider = ({ children }) => {
         });
 
         // 6. Documents (Stored as a single JSON blob for hierarchy structure)
-        const docStructRef = doc(db, 'projects', PROJECT_ID, 'data', 'documents');
+        const docStructRef = doc(db, 'projects', PID, 'data', 'documents');
         const unsubDocs = onSnapshot(docStructRef, (docSnap) => {
             if (docSnap.exists()) {
                 setDocuments(docSnap.data().structure);
@@ -92,15 +102,16 @@ export const ProjectProvider = ({ children }) => {
             unsubPhotos();
             unsubDocs();
         };
-    }, []);
+    }, [activeProjectId]);
 
     // --- Write Functions ---
 
     // Generic helper to add to a subcollection
     const addToCollection = async (collectionName, item) => {
         const newItem = { ...item, id: Date.now() }; // Ensure numeric ID for sort
+        if (!activeProjectId) return;
         try {
-            await addDoc(collection(db, 'projects', PROJECT_ID, collectionName), newItem);
+            await addDoc(collection(db, 'projects', activeProjectId, collectionName), newItem);
         } catch (e) {
             console.error(`Error adding to ${collectionName}:`, e);
             alert("Sync Error: Check your Firebase Config.");
@@ -109,9 +120,9 @@ export const ProjectProvider = ({ children }) => {
 
     // Generic helper to delete
     const deleteFromCollection = async (collectionName, firestoreId) => {
-        if (!firestoreId) return;
+        if (!firestoreId || !activeProjectId) return;
         try {
-            await deleteDoc(doc(db, 'projects', PROJECT_ID, collectionName, firestoreId));
+            await deleteDoc(doc(db, 'projects', activeProjectId, collectionName, firestoreId));
         } catch (e) {
             console.error(`Error deleting from ${collectionName}:`, e);
         }
@@ -119,9 +130,9 @@ export const ProjectProvider = ({ children }) => {
 
     // Generic helper to update
     const updateInCollection = async (collectionName, firestoreId, updates) => {
-        if (!firestoreId) return;
+        if (!firestoreId || !activeProjectId) return;
         try {
-            await updateDoc(doc(db, 'projects', PROJECT_ID, collectionName, firestoreId), updates);
+            await updateDoc(doc(db, 'projects', activeProjectId, collectionName, firestoreId), updates);
         } catch (e) {
             console.error(`Error updating ${collectionName}:`, e);
         }
@@ -189,8 +200,9 @@ export const ProjectProvider = ({ children }) => {
 
     // --- Documents (Full Structure Update) ---
     const saveDocumentsStruture = async (newDocs) => {
+        if (!activeProjectId) return;
         try {
-            await setDoc(doc(db, 'projects', PROJECT_ID, 'data', 'documents'), { structure: newDocs });
+            await setDoc(doc(db, 'projects', activeProjectId, 'data', 'documents'), { structure: newDocs });
         } catch (e) {
             console.error("Error saving docs:", e);
         }
@@ -252,7 +264,9 @@ export const ProjectProvider = ({ children }) => {
             addDocument,
             deleteDocument,
             addPhoto,
-            deletePhoto
+            deletePhoto,
+            activeProjectId,
+            setActiveProjectId
         }}>
             {children}
         </ProjectContext.Provider>

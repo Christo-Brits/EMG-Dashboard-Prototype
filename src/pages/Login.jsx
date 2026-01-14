@@ -22,6 +22,21 @@ const Login = () => {
             } else {
                 await signup(email, password);
             }
+            // We can try to get the project ID from state passed via navigate, or query param, or just default.
+            // For now, let's default to south-mall OR assume the user came from a specific flow.
+            // Actually, usually you login *then* pick project, or pick project *then* login.
+            // If picking project first, the URL might include it? 
+            // Let's stick to a safe default for now, or prompt.
+            // Better: If user has 'allowedProjects', go to the first one.
+
+            // ... inside handleAuth ...
+
+            // ... inside handleAuth ...
+            // Success
+            // Check if user has allowed projects.
+            // Since `user` state might not update instant-instant in local scope, we reload or rely on useEffect.
+            // But we can just navigate to '/dashboard' (global) or specific if we knew it.
+            // Let's assume 'south-mall' for demo continuity, OR check recent.
             navigate('/project/south-mall');
         } catch (err) {
             console.error("Auth Error:", err);

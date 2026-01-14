@@ -2,17 +2,35 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronRight, Lock, MapPin, Search, AlertCircle, X } from 'lucide-react';
 import { PROJECTS } from '../data/mockData';
+import { useAuth } from '../context/AuthContext';
 
 const ProjectSelect = () => {
     const navigate = useNavigate();
+    const { user, isAdmin } = useAuth();
     const [selectedProject, setSelectedProject] = useState('');
     const [showPopup, setShowPopup] = useState(false);
+
+    // Filter projects based on user permissions
+    // If not logged in yet, we show all (or none?). For prototype, show all.
+    // If logged in, show only allowed.
+    // Actually, this screen is BEFORE login often? Or after?
+    // Current flow: Select -> Login. So we likely don't know the user yet.
+    // So we keep showing all PROJECTS, but the Login check will verify access later or we assume public list.
+    // Wait, the plan says "Query Firestore for all projects where id is in user.allowedProjects".
+    // But this page is at root `/`. User might not be logged in.
+    // If user IS logged in, we should probably auto-redirect or filter.
+
+    // Improved Flow: 
+    // If user is null, show "Sign In to View Projects" OR allow selecting a project to "Login into".
+    // The current flow is "Select Project -> Login". 
+    // Let's stick to "Select Project -> Login" for now, but update the next step.
 
     const handleContinue = () => {
         if (!selectedProject) return;
 
         if (selectedProject === 'south-mall') {
-            navigate('/login');
+            // For now, allow south-mall and maybe others if we add them
+            navigate(`/project/${selectedProject}`);
         } else {
             setShowPopup(true);
         }

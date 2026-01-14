@@ -27,7 +27,7 @@ function App() {
             <Route path="/login" element={<Login />} />
             <Route element={<Shell />}>
               <Route path="/dashboard" element={<GlobalDashboard />} />
-              <Route path="/project/:id" element={<ProjectDashboard />}>
+              <Route path="/project/:projectId" element={<ProjectDashboard />}>
                 <Route index element={<Navigate to="overview" replace />} />
                 <Route path="overview" element={<OverviewTab />} />
                 <Route path="updates" element={<UpdatesTab />} />

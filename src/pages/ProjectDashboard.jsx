@@ -3,9 +3,18 @@ import { useParams, NavLink, Outlet, Navigate } from 'react-router-dom';
 import { PROJECTS } from '../data/mockData';
 import { ArrowLeft } from 'lucide-react';
 
+import { useProjectData } from '../context/ProjectContext';
+
 const ProjectDashboard = () => {
-    const { id } = useParams();
-    const project = PROJECTS.find(p => p.id === id) || PROJECTS[0]; // Fallback to first for safety
+    const { projectId } = useParams();
+    const { setActiveProjectId } = useProjectData();
+    const project = PROJECTS.find(p => p.id === projectId) || PROJECTS[0]; // Fallback
+
+    React.useEffect(() => {
+        if (projectId) {
+            setActiveProjectId(projectId);
+        }
+    }, [projectId, setActiveProjectId]);
 
     const getStatusColor = (status) => {
         switch (status) {
@@ -43,7 +52,7 @@ const ProjectDashboard = () => {
                             <h1 className="text-2xl font-bold text-[var(--color-brand-primary)]">{project.name}</h1>
                             <span className={`badge ${getStatusColor(project.status)}`}>{project.status}</span>
                         </div>
-                        <p className="text-[var(--color-text-secondary)] text-sm">Project ID: {id?.toUpperCase()} • Last updated {project.lastUpdated}</p>
+                        <p className="text-[var(--color-text-secondary)] text-sm">Project ID: {projectId?.toUpperCase()} • Last updated {project.lastUpdated}</p>
                     </div>
                     <div>
                         {/* Client logo placeholder or similar if needed */}
