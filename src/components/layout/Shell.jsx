@@ -1,7 +1,7 @@
 import React from 'react';
 import { Outlet, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { User, LogOut } from 'lucide-react';
+import { User, LogOut, LogIn } from 'lucide-react';
 
 const Shell = () => {
     const { user, isAdmin, logout } = useAuth();
@@ -34,7 +34,15 @@ const Shell = () => {
                                 </button>
                             </div>
                         ) : (
-                            <div className="h-8 w-8 rounded-full bg-gray-200" />
+                            <Link
+                                to="/login"
+                                className="flex items-center gap-2 text-sm font-medium text-[var(--color-brand-primary)] hover:text-blue-700 transition-colors"
+                            >
+                                <span className="hidden sm:inline">Log In</span>
+                                <div className="h-9 w-9 rounded-full bg-blue-50 flex items-center justify-center border border-blue-100">
+                                    <LogIn size={18} />
+                                </div>
+                            </Link>
                         )}
                     </div>
                 </div>
