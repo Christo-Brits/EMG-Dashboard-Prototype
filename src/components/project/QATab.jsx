@@ -12,12 +12,11 @@ const QATab = () => {
     const [showForm, setShowForm] = useState(false);
     const [newQuestion, setNewQuestion] = useState({ title: '', context: '', category: 'RFI' });
 
-    // Delete State
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
     const [questionToDelete, setQuestionToDelete] = useState(null);
 
     const confirmDelete = (e, id) => {
-        e.preventDefault(); // Stop Link navigation
+        e.preventDefault();
         e.stopPropagation();
         setQuestionToDelete(id);
         setDeleteModalOpen(true);
@@ -44,7 +43,7 @@ const QATab = () => {
                     <h2 className="text-lg font-semibold text-[var(--color-brand-primary)]">Project Questions</h2>
                     <p className="text-sm text-[var(--color-text-secondary)]">Queries and clarifications shared across the project team</p>
                 </div>
-                {user && (
+                {isAdmin && (
                     <button
                         onClick={() => setShowForm(!showForm)}
                         className="btn btn-primary text-sm gap-2"
@@ -150,12 +149,11 @@ const QATab = () => {
                                     <MessageSquare size={14} />
                                     {item.replies.length} {item.replies.length === 1 ? 'reply' : 'replies'}
                                     {item.replies.length > 0 && (
-                                        <span>• Last reply by {item.replies[item.replies.length - 1].author}</span>
+                                        <span>&bull; Last reply by {item.replies[item.replies.length - 1].author}</span>
                                     )}
                                 </div>
                             </div>
 
-                            {/* Admin Delete Button - Absolute Positioned */}
                             {isAdmin && (
                                 <button
                                     onClick={(e) => confirmDelete(e, item.id)}

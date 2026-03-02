@@ -13,7 +13,6 @@ const PhotosTab = () => {
     const fileInputRef = useRef(null);
     const [isUploading, setIsUploading] = useState(false);
 
-    // Delete State
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
     const [photoToDelete, setPhotoToDelete] = useState(null);
 
@@ -29,38 +28,9 @@ const PhotosTab = () => {
         }
     };
 
-    const compressImage = (file) => {
-        return new Promise((resolve) => {
-            const reader = new FileReader();
-            reader.readAsDataURL(file);
-            reader.onload = (event) => {
-                const img = new Image();
-                img.src = event.target.result;
-                img.onload = () => {
-                    const canvas = document.createElement('canvas');
-                    const MAX_WIDTH = 800;
-                    const scaleSize = MAX_WIDTH / img.width;
-                    const width = (img.width > MAX_WIDTH) ? MAX_WIDTH : img.width;
-                    const height = (img.width > MAX_WIDTH) ? (img.height * scaleSize) : img.height;
-
-                    canvas.width = width;
-                    canvas.height = height;
-
-                    const ctx = canvas.getContext('2d');
-                    ctx.drawImage(img, 0, 0, width, height);
-
-                    // Compress to JPEG 0.7 quality
-                    const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
-                    resolve(dataUrl);
-                };
-            };
-        });
-    };
-
     const handleFileChange = (e) => {
         const file = e.target.files[0];
         if (file) {
-            // Create a preview
             const previewUrl = URL.createObjectURL(file);
             setNewPhoto(prev => ({ ...prev, file: file, preview: previewUrl }));
         }
@@ -93,7 +63,7 @@ const PhotosTab = () => {
             <div className="flex justify-between items-center mb-6">
                 <h2 className="text-lg font-semibold text-[var(--color-brand-primary)]">Site Photos</h2>
                 <div className="flex gap-2">
-                    {user && (
+                    {isAdmin && (
                         <button
                             onClick={() => setShowUpload(true)}
                             className="btn btn-primary text-xs gap-1"
@@ -101,7 +71,6 @@ const PhotosTab = () => {
                             <Plus size={14} /> Upload Photo
                         </button>
                     )}
-                    <button className="btn btn-outline text-xs px-3">Latest</button>
                 </div>
             </div>
 
@@ -113,7 +82,6 @@ const PhotosTab = () => {
                 itemType="photo"
             />
 
-            {/* Upload Modal (Simplified inline) */}
             {showUpload && (
                 <div className="bg-gray-50 border border-dashed border-gray-300 rounded-lg p-4 mb-6 animate-in fade-in">
                     <h3 className="font-bold text-gray-700 text-sm mb-3">Upload Site Photo</h3>
@@ -206,8 +174,8 @@ const PhotosTab = () => {
                         <div key={photo.id} className="group cursor-pointer relative">
                             <div className="aspect-[4/3] bg-gray-100 rounded-md overflow-hidden relative border border-gray-200 mb-3">
                                 <img
-                                    src={photo.url || photo.src} // Handle old (src) vs new (url)
-                                    alt={photo.desc || photo.caption} // Handle old vs new
+                                    src={photo.url || photo.src}
+                                    alt={photo.desc || photo.caption}
                                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                                 />
                                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors"></div>

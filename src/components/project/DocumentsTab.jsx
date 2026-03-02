@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Folder, FileText, Upload, ChevronRight, ChevronDown, Trash2, X } from 'lucide-react';
+import { Folder, FileText, Upload, ChevronRight, ChevronDown, Trash2, X, Download } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useProjectData } from '../../context/ProjectContext';
 import DeleteConfirmModal from '../common/DeleteConfirmModal';
@@ -60,7 +60,7 @@ const UploadModal = ({ isOpen, onClose, folders, onUpload }) => {
                         </select>
                     </div>
                     <div className="pt-2 flex justify-end gap-2">
-                        <button type="button" onClick={onClose} className="btn btn-ghost text-sm">Cancel</button>
+                        <button type="button" onClick={onClose} className="btn btn-outline text-sm">Cancel</button>
                         <button type="submit" className="btn btn-primary text-sm flex items-center gap-2">
                             <Upload size={16} /> Upload Now
                         </button>
@@ -73,13 +73,10 @@ const UploadModal = ({ isOpen, onClose, folders, onUpload }) => {
 
 const DocumentsTab = () => {
     const { user, isAdmin } = useAuth();
-
-    // Use Context Data
     const { documents, addDocument, deleteDocument } = useProjectData();
 
     const [expandedFolders, setExpandedFolders] = useState(['folder-1', 'folder-2', 'folder-3', 'folder-4']);
 
-    // Modal States
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
     const [uploadModalOpen, setUploadModalOpen] = useState(false);
     const [fileToDelete, setFileToDelete] = useState(null);
@@ -110,8 +107,6 @@ const DocumentsTab = () => {
         setIsUploading(true);
         try {
             await addDocument(file, folderId, user ? user.name : 'Unknown');
-
-            // Auto-expand the target folder
             if (!expandedFolders.includes(folderId)) {
                 setExpandedFolders(prev => [...prev, folderId]);
             }
@@ -119,6 +114,12 @@ const DocumentsTab = () => {
             console.error("Upload failed", error);
         } finally {
             setIsUploading(false);
+        }
+    };
+
+    const handleDownloadFile = (file) => {
+        if (file.url) {
+            window.open(file.url, '_blank');
         }
     };
 
@@ -139,26 +140,29 @@ const DocumentsTab = () => {
                 onUpload={handleExecuteUpload}
             />
 
-            {/* Calm Header Line */}
+            {/* Header */}
             <div className="bg-blue-50/50 border border-blue-100 p-4 rounded-lg mb-6 flex items-start sm:items-center justify-between gap-4">
                 <p className="text-sm text-blue-800">
                     Project documentation is stored centrally for version control and transparency.
                 </p>
-                <button
-                    onClick={() => setUploadModalOpen(true)}
-                    disabled={isUploading}
-                    className="btn btn-outline bg-white text-xs whitespace-nowrap gap-2 hover:bg-blue-50 border-blue-200 text-blue-700 disabled:opacity-50"
-                >
-                    {isUploading ? <span className="animate-pulse">Uploading...</span> : <><Upload size={14} /> Upload Document</>}
-                </button>
+                {isAdmin && (
+                    <button
+                        onClick={() => setUploadModalOpen(true)}
+                        disabled={isUploading}
+                        className="btn btn-outline bg-white text-xs whitespace-nowrap gap-2 hover:bg-blue-50 border-blue-200 text-blue-700 disabled:opacity-50"
+                    >
+                        {isUploading ? <span className="animate-pulse">Uploading...</span> : <><Upload size={14} /> Upload Document</>}
+                    </button>
+                )}
             </div>
 
             <div className="border border-gray-200 rounded-lg overflow-hidden bg-white shadow-sm">
                 <div className="grid grid-cols-12 bg-gray-50 border-b border-gray-200 text-xs font-semibold text-gray-500 uppercase tracking-wider py-3 px-4">
-                    <div className="col-span-6">File Name</div>
+                    <div className="col-span-5">File Name</div>
                     <div className="col-span-2">Type</div>
                     <div className="col-span-2">Uploaded By</div>
                     <div className="col-span-2 text-right">Date</div>
+                    <div className="col-span-1 text-center">Action</div>
                 </div>
 
                 <div className="divide-y divide-gray-100">
@@ -166,12 +170,11 @@ const DocumentsTab = () => {
                         const isExpanded = expandedFolders.includes(folder.id);
                         return (
                             <React.Fragment key={folder.id}>
-                                {/* Folder Row */}
                                 <div
                                     onClick={() => toggleFolder(folder.id)}
                                     className="grid grid-cols-12 items-center py-3 px-4 hover:bg-gray-50 cursor-pointer transition-colors group"
                                 >
-                                    <div className="col-span-6 flex items-center gap-3">
+                                    <div className="col-span-5 flex items-center gap-3">
                                         <span className="text-gray-400 group-hover:text-gray-600">
                                             {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
                                         </span>
@@ -182,17 +185,33 @@ const DocumentsTab = () => {
                                     <div className="col-span-2 text-xs text-gray-400 font-medium">Folder</div>
                                     <div className="col-span-2 text-xs text-gray-400">-</div>
                                     <div className="col-span-2 text-xs text-gray-400 text-right">-</div>
+                                    <div className="col-span-1"></div>
                                 </div>
 
-                                {/* File Rows (if expanded) */}
                                 {isExpanded && folder.items.map(file => (
                                     <div key={file.id} className="grid grid-cols-12 items-center py-2.5 px-4 bg-slate-50/30 hover:bg-blue-50/30 border-l-4 border-l-transparent hover:border-l-blue-400 transition-all pl-12 group/file">
-                                        <div className="col-span-6 flex items-center gap-3">
+                                        <div className="col-span-5 flex items-center gap-3">
                                             <FileText size={16} className="text-gray-400" />
-                                            <span className="text-sm text-gray-600 hover:text-gray-900 hover:underline cursor-pointer truncate mr-2">
+                                            <span
+                                                className="text-sm text-gray-600 hover:text-gray-900 hover:underline cursor-pointer truncate mr-2"
+                                                onClick={() => handleDownloadFile(file)}
+                                            >
                                                 {file.name}
                                             </span>
-
+                                        </div>
+                                        <div className="col-span-2 text-xs text-gray-500 font-mono bg-gray-100 inline-block px-1.5 py-0.5 rounded w-fit">{file.type}</div>
+                                        <div className="col-span-2 text-xs text-gray-500">{file.author}</div>
+                                        <div className="col-span-2 text-xs text-gray-500 text-right font-medium">{file.date}</div>
+                                        <div className="col-span-1 flex items-center justify-center gap-1">
+                                            {file.url && (
+                                                <button
+                                                    onClick={() => handleDownloadFile(file)}
+                                                    className="text-gray-400 hover:text-blue-600 transition-colors p-1"
+                                                    title="Download"
+                                                >
+                                                    <Download size={14} />
+                                                </button>
+                                            )}
                                             {isAdmin && (
                                                 <button
                                                     onClick={(e) => confirmDelete(e, file.id)}
@@ -203,9 +222,6 @@ const DocumentsTab = () => {
                                                 </button>
                                             )}
                                         </div>
-                                        <div className="col-span-2 text-xs text-gray-500 font-mono bg-gray-100 inline-block px-1.5 py-0.5 rounded w-fit">{file.type}</div>
-                                        <div className="col-span-2 text-xs text-gray-500">{file.author}</div>
-                                        <div className="col-span-2 text-xs text-gray-500 text-right font-medium">{file.date}</div>
                                     </div>
                                 ))}
                             </React.Fragment>

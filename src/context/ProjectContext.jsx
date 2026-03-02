@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { PROJECTS, UPDATES, ACTIONS, QA, DOCUMENTS } from '../data/mockData';
-import { db } from '../config/firebase';
+import { db, storage } from '../config/firebase';
 import {
     collection,
     doc,
@@ -12,15 +12,13 @@ import {
     query,
     orderBy
 } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 const ProjectContext = createContext();
 
 export const useProjectData = () => useContext(ProjectContext);
 
-// Initial Logic removed. We now use activeProjectId state.
-
 export const ProjectProvider = ({ children }) => {
-    // Initial states (will be populated by Firestore)
     const [activeProjectId, setActiveProjectId] = useState(null);
     const [projects, setProjects] = useState(PROJECTS);
     const [updates, setUpdates] = useState([]);
@@ -32,7 +30,6 @@ export const ProjectProvider = ({ children }) => {
     // --- Firestore Subscriptions ---
     useEffect(() => {
         if (!db || !activeProjectId) {
-            // Reset state if no project selected
             setUpdates([]);
             setActions([]);
             setQa([]);
@@ -43,53 +40,43 @@ export const ProjectProvider = ({ children }) => {
 
         const PID = activeProjectId;
 
-        // 1. Projects (Just syncing the main project doc details if we were fully cloud, 
-        // but for now we keep PROJECTS mock for the list and just update the specific project from DB if needed.
-        // Keeping projects local/mock for the "Select" screen simplicity unless expanded.)
-
-        // 2. Updates
+        // Updates
         const updatesRef = collection(db, 'projects', PID, 'updates');
-        const qUpdates = query(updatesRef, orderBy('id', 'desc'));
-        // Note: 'id' in mock data was timestamp-ish number. 
-        // We'll trust the creation time or just sort client side if needed.
-
         const unsubUpdates = onSnapshot(updatesRef, (snapshot) => {
-            const data = snapshot.docs.map(doc => ({ ...doc.data(), firestoreId: doc.id }));
-            // Sort by date/id desc
+            const data = snapshot.docs.map(d => ({ ...d.data(), firestoreId: d.id }));
             data.sort((a, b) => b.id - a.id);
-            setUpdates(data.length > 0 ? data : UPDATES); // Fallback to mock if empty (optional, maybe better to start empty)
+            setUpdates(data.length > 0 ? data : UPDATES);
         }, (err) => console.error("Updates Sync Error:", err));
 
-        // 3. Actions
+        // Actions
         const actionsRef = collection(db, 'projects', PID, 'actions');
         const unsubActions = onSnapshot(actionsRef, (snapshot) => {
-            const data = snapshot.docs.map(doc => ({ ...doc.data(), firestoreId: doc.id }));
+            const data = snapshot.docs.map(d => ({ ...d.data(), firestoreId: d.id }));
             setActions(data.length > 0 ? data : ACTIONS);
         });
 
-        // 4. Q&A
+        // Q&A
         const qaRef = collection(db, 'projects', PID, 'qa');
-        const unsubOA = onSnapshot(qaRef, (snapshot) => {
-            const data = snapshot.docs.map(doc => ({ ...doc.data(), firestoreId: doc.id }));
+        const unsubQA = onSnapshot(qaRef, (snapshot) => {
+            const data = snapshot.docs.map(d => ({ ...d.data(), firestoreId: d.id }));
             data.sort((a, b) => b.id - a.id);
             setQa(data.length > 0 ? data : QA);
         });
 
-        // 5. Photos
+        // Photos
         const photosRef = collection(db, 'projects', PID, 'photos');
         const unsubPhotos = onSnapshot(photosRef, (snapshot) => {
-            const data = snapshot.docs.map(doc => ({ ...doc.data(), firestoreId: doc.id }));
+            const data = snapshot.docs.map(d => ({ ...d.data(), firestoreId: d.id }));
             data.sort((a, b) => b.id - a.id);
-            setPhotos(data); // If empty, we might want to seed?
+            setPhotos(data);
         });
 
-        // 6. Documents (Stored as a single JSON blob for hierarchy structure)
+        // Documents
         const docStructRef = doc(db, 'projects', PID, 'data', 'documents');
         const unsubDocs = onSnapshot(docStructRef, (docSnap) => {
             if (docSnap.exists()) {
                 setDocuments(docSnap.data().structure);
             } else {
-                // If it doesn't exist yet, initialize it
                 setDoc(docStructRef, { structure: DOCUMENTS });
                 setDocuments(DOCUMENTS);
             }
@@ -98,17 +85,15 @@ export const ProjectProvider = ({ children }) => {
         return () => {
             unsubUpdates();
             unsubActions();
-            unsubOA();
+            unsubQA();
             unsubPhotos();
             unsubDocs();
         };
     }, [activeProjectId]);
 
     // --- Write Functions ---
-
-    // Generic helper to add to a subcollection
     const addToCollection = async (collectionName, item) => {
-        const newItem = { ...item, id: Date.now() }; // Ensure numeric ID for sort
+        const newItem = { ...item, id: Date.now() };
         if (!activeProjectId) return;
         try {
             await addDoc(collection(db, 'projects', activeProjectId, collectionName), newItem);
@@ -118,7 +103,6 @@ export const ProjectProvider = ({ children }) => {
         }
     };
 
-    // Generic helper to delete
     const deleteFromCollection = async (collectionName, firestoreId) => {
         if (!firestoreId || !activeProjectId) return;
         try {
@@ -128,7 +112,6 @@ export const ProjectProvider = ({ children }) => {
         }
     };
 
-    // Generic helper to update
     const updateInCollection = async (collectionName, firestoreId, updates) => {
         if (!firestoreId || !activeProjectId) return;
         try {
@@ -138,7 +121,7 @@ export const ProjectProvider = ({ children }) => {
         }
     };
 
-    // --- File Input Helper ---
+    // --- File Upload Helper ---
     const uploadFile = async (file, path) => {
         if (!file) return null;
         const storageRef = ref(storage, path);
@@ -147,7 +130,6 @@ export const ProjectProvider = ({ children }) => {
     };
 
     // --- Specific Add Functions ---
-
     const addUpdate = (text, author) => {
         const timestamp = new Date().toLocaleString('en-US', {
             weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
@@ -162,10 +144,12 @@ export const ProjectProvider = ({ children }) => {
             type: 'progress'
         });
     };
+
     const deleteUpdate = (id) => {
         const item = updates.find(u => u.id === id);
         if (item) deleteFromCollection('updates', item.firestoreId);
     };
+
     const updateUpdate = (id, newContent) => {
         const item = updates.find(u => u.id === id);
         if (item) updateInCollection('updates', item.firestoreId, newContent);
@@ -180,16 +164,17 @@ export const ProjectProvider = ({ children }) => {
             status: 'Open'
         });
     };
+
     const updateActionStatus = (id, status) => {
         const item = actions.find(a => a.id === id);
         if (item) updateInCollection('actions', item.firestoreId, { status });
     };
+
     const deleteAction = (id) => {
         const item = actions.find(a => a.id === id);
         if (item) deleteFromCollection('actions', item.firestoreId);
     };
 
-    // --- Q&A ---
     // --- Q&A ---
     const addQuestion = (question, author) => {
         addToCollection('qa', {
@@ -202,9 +187,6 @@ export const ProjectProvider = ({ children }) => {
     };
 
     const addReply = (questionId, replyContent, author) => {
-        // We need to find the doc, get its current replies, and update array
-        // Firestore 'arrayUnion' is better but we have object array. 
-        // Simplest: Read client state, update, write back.
         const thread = qa.find(q => q.id.toString() === questionId.toString());
         if (thread) {
             const newReply = {
@@ -223,20 +205,16 @@ export const ProjectProvider = ({ children }) => {
     };
 
     // --- Photos ---
-    // --- Photos ---
     const addPhoto = async (file, caption, author) => {
         if (!activeProjectId) return;
 
-        // 1. Upload to Storage
         const fileName = `${Date.now()}_${file.name}`;
         const path = `projects/${activeProjectId}/photos/${fileName}`;
 
         try {
             const url = await uploadFile(file, path);
-
-            // 2. Save metadata to Firestore
             addToCollection('photos', {
-                url, // Now a remote URL
+                url,
                 caption,
                 author,
                 date: new Date().toLocaleDateString(),
@@ -247,13 +225,14 @@ export const ProjectProvider = ({ children }) => {
             alert("Failed to upload photo.");
         }
     };
+
     const deletePhoto = (id) => {
         const item = photos.find(p => p.id === id);
         if (item) deleteFromCollection('photos', item.firestoreId);
     };
 
-    // --- Documents (Full Structure Update) ---
-    const saveDocumentsStruture = async (newDocs) => {
+    // --- Documents ---
+    const saveDocumentsStructure = async (newDocs) => {
         if (!activeProjectId) return;
         try {
             await setDoc(doc(db, 'projects', activeProjectId, 'data', 'documents'), { structure: newDocs });
@@ -266,7 +245,6 @@ export const ProjectProvider = ({ children }) => {
         if (!activeProjectId) return;
 
         try {
-            // Upload if it's a real file
             const fileName = `${Date.now()}_${fileObj.name}`;
             const path = `projects/${activeProjectId}/documents/${fileName}`;
             const fileUrl = await uploadFile(fileObj, path);
@@ -277,7 +255,7 @@ export const ProjectProvider = ({ children }) => {
                 type: fileObj.name.split('.').pop().toUpperCase(),
                 author: author,
                 date: new Date().toLocaleDateString(),
-                url: fileUrl, // Remote URL
+                url: fileUrl,
                 size: (fileObj.size / 1024).toFixed(1) + ' KB'
             };
 
@@ -287,10 +265,8 @@ export const ProjectProvider = ({ children }) => {
                 }
                 return folder;
             });
-            // Optimistic update
             setDocuments(updatedDocs);
-            saveDocumentsStruture(updatedDocs);
-
+            saveDocumentsStructure(updatedDocs);
         } catch (error) {
             console.error("Error uploading document:", error);
             alert("Failed to upload document.");
@@ -303,13 +279,12 @@ export const ProjectProvider = ({ children }) => {
             items: folder.items.filter(item => item.id !== fileId)
         }));
         setDocuments(newDocs);
-        saveDocumentsStruture(newDocs);
+        saveDocumentsStructure(newDocs);
     };
 
     // --- Project Details ---
     const updateProjectDetails = (id, newDetails) => {
         setProjects(prev => prev.map(p => p.id === id ? { ...p, ...newDetails } : p));
-        // Note: Not syncing this to firestore in this phase as it's less critical/mocked
     };
 
     return (

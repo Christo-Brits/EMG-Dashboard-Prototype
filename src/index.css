@@ -3,7 +3,7 @@
   --color-brand-primary: #0f172a; /* Slate 900 */
   --color-brand-secondary: #334155; /* Slate 700 */
   --color-accent: #0284c7; /* Sky 600 - subtle specific actions */
-  
+
   /* Status Colors */
   --color-success: #10b981;
   --color-warning: #f59e0b;
@@ -19,14 +19,14 @@
 
   /* Typography */
   --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
-  
+
   /* Spacing */
   --spacing-xs: 0.25rem;
   --spacing-sm: 0.5rem;
   --spacing-md: 1rem;
   --spacing-lg: 1.5rem;
   --spacing-xl: 2rem;
-  
+
   /* Radius */
   --radius-sm: 0.25rem;
   --radius-md: 0.375rem;
@@ -56,7 +56,7 @@ button {
   font-family: inherit;
 }
 
-/* Utility Helper Classes (Simple implementation for prototype) */
+/* Utility Helper Classes */
 .container {
   max-width: 1280px;
   margin: 0 auto;
@@ -139,4 +139,49 @@ button {
 .badge-success { background: #dcfce7; color: #166534; }
 .badge-warning { background: #fef3c7; color: #92400e; }
 .badge-neutral { background: #f1f5f9; color: #475569; }
+.badge-info { background: #dbeafe; color: #1e40af; }
 
+/* Print / PDF Download Styles */
+@media print {
+  body {
+    background-color: white !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .print\\:hidden {
+    display: none !important;
+  }
+
+  .container {
+    max-width: 100% !important;
+    padding: 0 !important;
+  }
+
+  .card {
+    box-shadow: none !important;
+    border: 1px solid #e2e8f0 !important;
+    break-inside: avoid;
+  }
+
+  header, footer, nav {
+    display: none !important;
+  }
+
+  main {
+    padding: 0 !important;
+  }
+
+  .btn {
+    display: none !important;
+  }
+
+  table {
+    font-size: 0.75rem !important;
+  }
+
+  @page {
+    margin: 1.5cm;
+    size: A4;
+  }
+}

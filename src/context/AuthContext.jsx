@@ -8,10 +8,13 @@ import {
     onAuthStateChanged,
     sendPasswordResetEmail
 } from 'firebase/auth';
+import { ACCESS_REQUEST_EMAIL } from '../data/mockData';
 
 const AuthContext = createContext();
 
 export const useAuth = () => useContext(AuthContext);
+
+const ADMIN_EMAIL = 'christo@emgroup.co.nz';
 
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
@@ -20,7 +23,6 @@ export const AuthProvider = ({ children }) => {
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
             if (currentUser) {
-                // Check for user doc in Firestore
                 const userRef = doc(db, 'users', currentUser.uid);
                 let userData = {};
 
@@ -29,31 +31,36 @@ export const AuthProvider = ({ children }) => {
                     if (userSnap.exists()) {
                         userData = userSnap.data();
                     } else {
-                        // Create new user doc if it doesn't exist
-                        const isAdmin = currentUser.email.toLowerCase() === 'christo@emgroup.co.nz';
+                        const isAdmin = currentUser.email.toLowerCase() === ADMIN_EMAIL;
                         userData = {
                             email: currentUser.email,
                             name: isAdmin ? 'Christo (Admin)' : currentUser.email.split('@')[0],
-                            role: isAdmin ? 'admin' : 'stakeholder',
-                            allowedProjects: isAdmin ? ['south-mall', 'north-end'] : ['south-mall'], // Default access
+                            role: isAdmin ? 'admin' : 'user',
+                            allowedProjects: isAdmin ? ['south-mall', 'retail-facilities', 'civil-drainage', 'planned-maintenance', 'emergency-works'] : [],
+                            approved: isAdmin,
                             createdAt: new Date()
                         };
                         await setDoc(userRef, userData);
                     }
                 } catch (error) {
                     console.error("Error fetching user data:", error);
-                    // Fallback to basic auth info if firestore fails
                     userData = {
                         email: currentUser.email,
-                        role: 'stakeholder'
+                        role: 'user',
+                        allowedProjects: [],
+                        approved: false
                     };
                 }
 
+                const isAdminEmail = currentUser.email.toLowerCase() === ADMIN_EMAIL;
                 setUser({
                     ...currentUser,
                     ...userData,
-                    // Ensure admin override matches email even if DB says otherwise provided it's the master email
-                    role: currentUser.email.toLowerCase() === 'christo@emgroup.co.nz' ? 'admin' : userData.role
+                    role: isAdminEmail ? 'admin' : (userData.role || 'user'),
+                    approved: isAdminEmail ? true : (userData.approved || false),
+                    allowedProjects: isAdminEmail
+                        ? ['south-mall', 'retail-facilities', 'civil-drainage', 'planned-maintenance', 'emergency-works']
+                        : (userData.allowedProjects || [])
                 });
             } else {
                 setUser(null);
@@ -80,8 +87,33 @@ export const AuthProvider = ({ children }) => {
         return sendPasswordResetEmail(auth, email);
     };
 
+    const hasProjectAccess = (projectId) => {
+        if (!user) return false;
+        if (user.role === 'admin') return true;
+        return user.allowedProjects?.includes(projectId) && user.approved;
+    };
+
+    const canWrite = () => {
+        return user?.role === 'admin';
+    };
+
+    const canDownloadPdf = () => {
+        return !!user;
+    };
+
     return (
-        <AuthContext.Provider value={{ user, login, signup, logout, resetPassword, isAdmin: user?.role === 'admin' }}>
+        <AuthContext.Provider value={{
+            user,
+            login,
+            signup,
+            logout,
+            resetPassword,
+            isAdmin: user?.role === 'admin',
+            hasProjectAccess,
+            canWrite,
+            canDownloadPdf,
+            accessRequestEmail: ACCESS_REQUEST_EMAIL
+        }}>
             {!loading && children}
         </AuthContext.Provider>
     );

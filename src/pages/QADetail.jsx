@@ -6,7 +6,7 @@ import { useAuth } from '../context/AuthContext';
 
 const QADetail = () => {
     const { id } = useParams();
-    const { qa, addReply } = useProjectData();
+    const { qa, addReply, activeProjectId } = useProjectData();
     const { user } = useAuth();
 
     const thread = qa.find(q => q.id.toString() === id);
@@ -25,7 +25,7 @@ const QADetail = () => {
     return (
         <div className="container max-w-4xl pt-6">
             <div className="mb-6">
-                <NavLink to="/project/south-mall/qa" className="text-sm text-gray-500 hover:text-[var(--color-brand-primary)] flex items-center gap-1">
+                <NavLink to={`/project/${activeProjectId || 'south-mall'}/qa`} className="text-sm text-gray-500 hover:text-[var(--color-brand-primary)] flex items-center gap-1">
                     <ArrowLeft size={14} /> Back to Project Q&A
                 </NavLink>
             </div>
@@ -44,7 +44,7 @@ const QADetail = () => {
 
                     <div className="flex items-center text-sm text-gray-500 gap-4">
                         <span>Raised {thread.date}</span>
-                        <span>•</span>
+                        <span>&bull;</span>
                         <span>ID: #{thread.id.toString().padStart(4, '0')}</span>
                     </div>
                 </div>
@@ -84,7 +84,6 @@ const QADetail = () => {
                                         <div className="text-gray-700 leading-relaxed bg-white border border-gray-100 p-4 rounded-lg rounded-tl-none shadow-sm">
                                             {reply.content}
                                         </div>
-                                        {/* Mock logic: if it's the last reply, assume it resolved it for now if status is Answered */}
                                         {idx === thread.replies.length - 1 && thread.status === 'Answered' && (
                                             <div className="mt-2 flex items-center gap-1 text-xs text-green-600 font-medium">
                                                 <CheckCircle2 size={12} /> Marked as Answer
@@ -103,7 +102,7 @@ const QADetail = () => {
                         <div className="flex gap-4">
                             <div className="w-10 h-10 rounded-full bg-[var(--color-brand-primary)] flex items-center justify-center text-white flex-shrink-0">
                                 <span className="font-bold text-sm">
-                                    {user.name.charAt(0)}
+                                    {user.name?.charAt(0) || 'U'}
                                 </span>
                             </div>
                             <div className="flex-grow">

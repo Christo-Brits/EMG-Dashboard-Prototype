@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useProjectData } from '../../context/ProjectContext';
 import { useAuth } from '../../context/AuthContext';
-import { CheckCircle2, Circle, Plus, X, Trash2 } from 'lucide-react';
+import { CheckCircle2, Circle, Plus, X, Trash2, Download } from 'lucide-react';
 import DeleteConfirmModal from '../common/DeleteConfirmModal';
 
 const ActionsTab = () => {
@@ -40,7 +40,7 @@ const ActionsTab = () => {
     };
 
     const toggleStatus = (id, currentStatus) => {
-        if (!user) return;
+        if (!isAdmin) return;
         const newStatus = currentStatus === 'Open' ? 'Closed' : 'Open';
         updateActionStatus(id, newStatus);
     };
@@ -50,7 +50,7 @@ const ActionsTab = () => {
             <div className="flex justify-between items-center mb-6">
                 <h2 className="text-lg font-semibold text-[var(--color-brand-primary)]">Actions & Follow-Ups</h2>
                 <div className="flex gap-2">
-                    {user && (
+                    {isAdmin && (
                         <button
                             onClick={() => setShowForm(!showForm)}
                             className="btn btn-primary text-sm gap-1"
@@ -58,7 +58,6 @@ const ActionsTab = () => {
                             <Plus size={16} /> Raise Action
                         </button>
                     )}
-                    <button className="btn btn-outline text-sm">Export List</button>
                 </div>
             </div>
 
@@ -155,9 +154,9 @@ const ActionsTab = () => {
                                     <td className="px-6 py-4 text-center">
                                         <button
                                             onClick={() => toggleStatus(action.id, action.status)}
-                                            className={`transition-transform active:scale-95 ${user ? 'cursor-pointer hover:opacity-80' : 'cursor-default'}`}
-                                            disabled={!user}
-                                            title={user ? "Click to toggle status" : ""}
+                                            className={`transition-transform active:scale-95 ${isAdmin ? 'cursor-pointer hover:opacity-80' : 'cursor-default'}`}
+                                            disabled={!isAdmin}
+                                            title={isAdmin ? "Click to toggle status" : "Read-only access"}
                                         >
                                             {getStatusBadge(action.status)}
                                         </button>

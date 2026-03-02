@@ -1,20 +1,30 @@
 import React from 'react';
-import { Outlet, Link } from 'react-router-dom';
+import { Outlet, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { User, LogOut, LogIn } from 'lucide-react';
+import { User, LogOut, LogIn, Shield } from 'lucide-react';
 
 const Shell = () => {
     const { user, isAdmin, logout } = useAuth();
+    const navigate = useNavigate();
+
+    const handleLogout = async () => {
+        await logout();
+        navigate('/');
+    };
 
     return (
         <div className="min-h-screen flex flex-col">
-            <header className="bg-white border-b border-[var(--color-border)] h-16 flex items-center px-6 sticky top-0 z-50">
+            <header className="bg-white border-b border-[var(--color-border)] h-16 flex items-center px-6 sticky top-0 z-50 print:hidden">
                 <div className="container flex items-center justify-between h-full">
                     <Link to="/dashboard" className="flex items-center gap-2">
                         <img src={`${import.meta.env.BASE_URL}logo.png`} alt="EMG Logo" className="h-8 w-auto object-contain" />
                     </Link>
                     <div className="flex items-center gap-4">
-                        {isAdmin && <span className="bg-slate-800 text-white text-xs font-medium px-2.5 py-1 rounded">Admin</span>}
+                        {user && (
+                            <span className={`text-xs font-medium px-2.5 py-1 rounded flex items-center gap-1 ${isAdmin ? 'bg-slate-800 text-white' : 'bg-blue-50 text-blue-700 border border-blue-200'}`}>
+                                {isAdmin ? <><Shield size={12} /> Admin</> : 'User'}
+                            </span>
+                        )}
 
                         {user ? (
                             <div className="flex items-center gap-3 pl-4 border-l border-gray-200">
@@ -26,7 +36,7 @@ const Shell = () => {
                                     <User size={18} />
                                 </div>
                                 <button
-                                    onClick={logout}
+                                    onClick={handleLogout}
                                     className="p-2 text-gray-400 hover:text-red-500 transition-colors"
                                     title="Logout"
                                 >
@@ -50,8 +60,8 @@ const Shell = () => {
             <main className="flex-1 py-8">
                 <Outlet />
             </main>
-            <footer className="h-12 border-t border-[var(--color-border)] bg-white flex items-center justify-center text-sm text-[var(--color-text-secondary)]">
-                © 2025 EMG Project Management. All rights reserved.
+            <footer className="h-12 border-t border-[var(--color-border)] bg-white flex items-center justify-center text-sm text-[var(--color-text-secondary)] print:hidden">
+                &copy; 2026 EMG Project Management. All rights reserved.
             </footer>
         </div>
     );

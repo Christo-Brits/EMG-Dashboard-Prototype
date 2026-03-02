@@ -5,11 +5,11 @@ import { useProjectData } from '../../context/ProjectContext';
 import { useAuth } from '../../context/AuthContext';
 
 const OverviewTab = () => {
-    const { id } = useParams();
+    const { projectId } = useParams();
     const { projects, updateProjectDetails } = useProjectData();
     const { isAdmin } = useAuth();
 
-    const project = projects.find(p => p.id === id) || projects[0];
+    const project = projects.find(p => p.id === projectId) || projects[0];
 
     const [isEditing, setIsEditing] = useState(false);
     const [formData, setFormData] = useState({

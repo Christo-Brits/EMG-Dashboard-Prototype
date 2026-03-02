@@ -1,14 +1,15 @@
 import React from 'react';
-import { useParams, NavLink, Outlet, Navigate } from 'react-router-dom';
+import { useParams, NavLink, Outlet } from 'react-router-dom';
 import { PROJECTS } from '../data/mockData';
-import { ArrowLeft } from 'lucide-react';
-
+import { ArrowLeft, Download } from 'lucide-react';
 import { useProjectData } from '../context/ProjectContext';
+import { useAuth } from '../context/AuthContext';
 
 const ProjectDashboard = () => {
     const { projectId } = useParams();
     const { setActiveProjectId } = useProjectData();
-    const project = PROJECTS.find(p => p.id === projectId) || PROJECTS[0]; // Fallback
+    const { user, isAdmin } = useAuth();
+    const project = PROJECTS.find(p => p.id === projectId) || PROJECTS[0];
 
     React.useEffect(() => {
         if (projectId) {
@@ -26,6 +27,10 @@ const ProjectDashboard = () => {
         }
     };
 
+    const handleDownloadPdf = () => {
+        window.print();
+    };
+
     const tabs = [
         { name: 'Overview', path: 'overview' },
         { name: 'Progress Updates', path: 'updates' },
@@ -38,10 +43,19 @@ const ProjectDashboard = () => {
     return (
         <div className="container max-w-6xl">
             {/* Breadcrumb / Back */}
-            <div className="mb-4">
+            <div className="mb-4 flex items-center justify-between">
                 <NavLink to="/dashboard" className="text-sm text-gray-500 hover:text-[var(--color-brand-primary)] flex items-center gap-1">
                     <ArrowLeft size={14} /> Back to Dashboard
                 </NavLink>
+                {user && (
+                    <button
+                        onClick={handleDownloadPdf}
+                        className="btn btn-outline text-xs gap-2 print:hidden"
+                        title="Download this page as PDF"
+                    >
+                        <Download size={14} /> Download PDF
+                    </button>
+                )}
             </div>
 
             {/* Project Header */}
@@ -52,10 +66,12 @@ const ProjectDashboard = () => {
                             <h1 className="text-2xl font-bold text-[var(--color-brand-primary)]">{project.name}</h1>
                             <span className={`badge ${getStatusColor(project.status)}`}>{project.status}</span>
                         </div>
-                        <p className="text-[var(--color-text-secondary)] text-sm">Project ID: {projectId?.toUpperCase()} • Last updated {project.lastUpdated}</p>
+                        <p className="text-[var(--color-text-secondary)] text-sm">
+                            Project ID: {projectId?.toUpperCase()} &bull; Last updated {project.lastUpdated}
+                            {user && <span> &bull; Role: <strong className="capitalize">{user.role}</strong></span>}
+                        </p>
                     </div>
                     <div>
-                        {/* Client logo placeholder or similar if needed */}
                         <div className="text-right">
                             <span className="text-xs text-gray-400 block uppercase tracking-wide">Client</span>
                             <span className="font-medium">Foodstuffs North Island</span>
@@ -64,13 +80,13 @@ const ProjectDashboard = () => {
                 </div>
 
                 {/* Tabs */}
-                <div className="flex border-b border-gray-200">
+                <div className="flex border-b border-gray-200 overflow-x-auto">
                     {tabs.map((tab) => (
                         <NavLink
                             key={tab.path}
                             to={tab.path}
                             className={({ isActive }) =>
-                                `px-6 py-3 text-sm font-medium border-b-2 transition-colors ${isActive
+                                `px-6 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${isActive
                                     ? 'border-[var(--color-brand-primary)] text-[var(--color-brand-primary)]'
                                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                                 }`

@@ -1,13 +1,12 @@
 import React, { useState } from 'react';
 import { useProjectData } from '../../context/ProjectContext';
 import { useAuth } from '../../context/AuthContext';
-import { User, Calendar, Plus, MoreHorizontal, Trash2, Edit2, X, Check } from 'lucide-react';
+import { User, Calendar, Plus, MoreHorizontal, Trash2, Edit2, X } from 'lucide-react';
 
 const UpdatesTab = () => {
     const { updates, addUpdate, deleteUpdate, updateUpdate } = useProjectData();
     const { user, isAdmin } = useAuth();
 
-    // Edit/Delete State
     const [openMenuId, setOpenMenuId] = useState(null);
     const [editingId, setEditingId] = useState(null);
     const [editContent, setEditContent] = useState('');
@@ -16,11 +15,14 @@ const UpdatesTab = () => {
     const [newUpdate, setNewUpdate] = useState('');
     const [tag, setTag] = useState('Progress');
 
-    if (newUpdate.trim()) {
-        addUpdate(newUpdate, user?.name || 'Unknown');
-        setNewUpdate('');
-        setShowForm(false);
-    }
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        if (newUpdate.trim()) {
+            addUpdate(newUpdate, user?.name || 'Unknown');
+            setNewUpdate('');
+            setShowForm(false);
+        }
+    };
 
     const startEditing = (update) => {
         setEditingId(update.id);
@@ -52,7 +54,6 @@ const UpdatesTab = () => {
                             <Plus size={14} /> Post Update
                         </button>
                     )}
-                    <button className="btn btn-outline text-sm" disabled>Filter by Date</button>
                 </div>
             </div>
 
@@ -101,7 +102,6 @@ const UpdatesTab = () => {
                     <div className="space-y-6 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-slate-300 before:to-transparent">
                         {updates.map((update) => (
                             <div key={update.id} className="relative flex items-start group is-active animate-in fade-in duration-500">
-                                {/* Icon/Dot */}
                                 <div className="absolute left-0 mt-1 ml-2.5 h-5 w-5 rounded-full border-2 border-[var(--color-bg-surface)] bg-slate-300 group-[.is-active]:bg-[var(--color-accent)] z-10 flex items-center justify-center">
                                     <div className="h-1.5 w-1.5 rounded-full bg-white"></div>
                                 </div>
@@ -112,14 +112,14 @@ const UpdatesTab = () => {
                                             <span className="font-semibold text-[var(--color-brand-primary)] flex items-center gap-1">
                                                 <User size={14} /> {update.author}
                                             </span>
-                                            <span>•</span>
+                                            <span>&bull;</span>
                                             <span className="flex items-center gap-1">
                                                 <Calendar size={14} /> {update.date}
                                             </span>
                                         </div>
                                         <span className="badge badge-neutral bg-gray-100 text-gray-600">{update.tag}</span>
                                     </div>
-                                    <p className="text-gray-700 leading-relaxed text-sm">
+                                    <div className="text-gray-700 leading-relaxed text-sm">
                                         {editingId === update.id ? (
                                             <div className="mt-2">
                                                 <textarea
@@ -129,14 +129,14 @@ const UpdatesTab = () => {
                                                     onChange={(e) => setEditContent(e.target.value)}
                                                 />
                                                 <div className="flex justify-end gap-2">
-                                                    <button onClick={() => setEditingId(null)} className="btn btn-sm btn-outline text-xs">Cancel</button>
-                                                    <button onClick={() => saveEdit(update.id)} className="btn btn-sm btn-primary text-xs">Save</button>
+                                                    <button onClick={() => setEditingId(null)} className="btn btn-outline text-xs">Cancel</button>
+                                                    <button onClick={() => saveEdit(update.id)} className="btn btn-primary text-xs">Save</button>
                                                 </div>
                                             </div>
                                         ) : (
                                             update.content
                                         )}
-                                    </p>
+                                    </div>
 
                                     {/* Admin Controls */}
                                     {isAdmin && !editingId && (

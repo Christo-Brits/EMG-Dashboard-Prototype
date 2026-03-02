@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowRight, ChevronLeft } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { PROJECTS } from '../data/mockData';
 
 const Login = () => {
     const navigate = useNavigate();
+    const { projectId } = useParams();
     const { login, signup, resetPassword } = useAuth();
     const [isLoginMode, setIsLoginMode] = useState(true);
     const [isResetMode, setIsResetMode] = useState(false);
@@ -12,6 +14,10 @@ const Login = () => {
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
+
+    const targetProject = projectId
+        ? PROJECTS.find(p => p.id === projectId)
+        : PROJECTS.find(p => p.active);
 
     const handleAuth = async (e) => {
         e.preventDefault();
@@ -26,10 +32,10 @@ const Login = () => {
                 setIsLoginMode(true);
             } else if (isLoginMode) {
                 await login(email, password);
-                navigate('/project/south-mall');
+                navigate(projectId ? `/project/${projectId}` : '/dashboard');
             } else {
                 await signup(email, password);
-                navigate('/project/south-mall');
+                navigate(projectId ? `/project/${projectId}` : '/dashboard');
             }
         } catch (err) {
             console.error("Auth Error:", err);
@@ -56,7 +62,9 @@ const Login = () => {
 
                 <div className="mb-6 text-center sm:text-left">
                     <img src={`${import.meta.env.BASE_URL}logo.png`} alt="EMG Logo" className="h-12 w-auto mb-6 mx-auto sm:mx-0" />
-                    <h1 className="text-2xl font-bold text-[var(--color-brand-primary)]">South Mall New World</h1>
+                    <h1 className="text-2xl font-bold text-[var(--color-brand-primary)]">
+                        {targetProject?.name || 'EMG Project Portal'}
+                    </h1>
                     <p className="text-gray-500 mt-1">
                         {isResetMode ? 'Reset your password.' : (isLoginMode ? 'Welcome back. Sign in to continue.' : 'Create your account to access the project portal.')}
                     </p>
