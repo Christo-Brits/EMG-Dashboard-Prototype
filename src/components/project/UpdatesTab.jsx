@@ -3,6 +3,7 @@ import { useProjectData } from '../../context/ProjectContext';
 import { useProjectPermissions } from '../../hooks/useProjectPermissions';
 import { User, Calendar, Plus, MoreHorizontal, Trash2, Edit2, X, Check } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import DeleteConfirmModal from '../common/DeleteConfirmModal';
 
 const UpdatesTab = () => {
     const { updates, addUpdate, deleteUpdate, updateUpdate } = useProjectData();
@@ -13,6 +14,8 @@ const UpdatesTab = () => {
     const [openMenuId, setOpenMenuId] = useState(null);
     const [editingId, setEditingId] = useState(null);
     const [editContent, setEditContent] = useState('');
+    const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+    const [updateToDelete, setUpdateToDelete] = useState(null);
 
     const [showForm, setShowForm] = useState(false);
     const [newUpdate, setNewUpdate] = useState('');
@@ -39,13 +42,28 @@ const UpdatesTab = () => {
     };
 
     const handleDelete = (id) => {
-        if (window.confirm("Are you sure you want to delete this update?")) {
-            deleteUpdate(id);
+        setUpdateToDelete(id);
+        setDeleteModalOpen(true);
+        setOpenMenuId(null);
+    };
+
+    const handleExecuteDelete = () => {
+        if (updateToDelete) {
+            deleteUpdate(updateToDelete);
+            setUpdateToDelete(null);
         }
     };
 
     return (
         <div className="max-w-4xl mx-auto">
+            <DeleteConfirmModal
+                isOpen={deleteModalOpen}
+                onClose={() => setDeleteModalOpen(false)}
+                onConfirm={handleExecuteDelete}
+                title="Delete Update"
+                itemType="update"
+            />
+
             <div className="flex justify-between items-center mb-6">
                 <h2 className="text-lg font-semibold text-[var(--color-brand-primary)]">Progress Updates</h2>
                 <div className="flex gap-2">

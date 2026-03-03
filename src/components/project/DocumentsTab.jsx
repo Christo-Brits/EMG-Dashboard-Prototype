@@ -74,7 +74,7 @@ const UploadModal = ({ isOpen, onClose, folders, onUpload }) => {
 
 const DocumentsTab = () => {
     const { user } = useAuth();
-    const { canUploadFiles, canDeleteItems } = useProjectPermissions();
+    const { canUploadFiles, canDeleteFiles } = useProjectPermissions();
 
     // Use Context Data
     const { documents, addDocument, deleteDocument } = useProjectData();
@@ -197,7 +197,7 @@ const DocumentsTab = () => {
                                                 {file.name}
                                             </span>
 
-                                            {canDeleteItems && (
+                                            {canDeleteFiles && (
                                                 <button
                                                     onClick={(e) => confirmDelete(e, file.id)}
                                                     className="text-gray-300 hover:text-red-500 opacity-0 group-hover/file:opacity-100 transition-all p-1"

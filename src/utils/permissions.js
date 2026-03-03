@@ -29,6 +29,8 @@ export function hasMinRole(userRole, requiredRole) {
 export const canPostUpdates = (role) => hasMinRole(role, 'project_manager');
 export const canEditUpdates = (role) => hasMinRole(role, 'project_manager');
 export const canDeleteItems = (role) => hasMinRole(role, 'project_manager');
+/** Only admins may delete documents or photos (files/media). */
+export const canDeleteFiles = (role) => hasMinRole(role, 'admin');
 export const canRaiseActions = (role) => hasMinRole(role, 'project_manager');
 export const canToggleActionStatus = (role) => hasMinRole(role, 'project_manager');
 export const canUploadFiles = (role) => hasMinRole(role, 'stakeholder');

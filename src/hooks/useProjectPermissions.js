@@ -21,6 +21,7 @@ export function useProjectPermissions() {
         canPostUpdates: perms.canPostUpdates(role),
         canEditUpdates: perms.canEditUpdates(role),
         canDeleteItems: perms.canDeleteItems(role),
+        canDeleteFiles: perms.canDeleteFiles(role),
         canRaiseActions: perms.canRaiseActions(role),
         canToggleActionStatus: perms.canToggleActionStatus(role),
         canUploadFiles: perms.canUploadFiles(role),

@@ -8,7 +8,7 @@ import DeleteConfirmModal from '../common/DeleteConfirmModal';
 const PhotosTab = () => {
     const { user } = useAuth();
     const { photos, addPhoto, deletePhoto } = useProjectData();
-    const { canUploadFiles, canDeleteItems } = useProjectPermissions();
+    const { canUploadFiles, canDeleteFiles } = useProjectPermissions();
 
     const [showUpload, setShowUpload] = useState(false);
     const [newPhoto, setNewPhoto] = useState({ desc: '', tag: 'Progress', file: null, preview: '' });
@@ -214,7 +214,7 @@ const PhotosTab = () => {
                                 />
                                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors"></div>
 
-                                {canDeleteItems && (
+                                {canDeleteFiles && (
                                     <button
                                         onClick={(e) => { e.stopPropagation(); confirmDelete(photo.id); }}
                                         className="absolute top-2 right-2 bg-red-600 text-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-700 z-10"

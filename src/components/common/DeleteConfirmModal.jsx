@@ -1,22 +1,66 @@
 import React, { useState } from 'react';
-import { AlertTriangle, X } from 'lucide-react';
+import { AlertTriangle, X, Loader2 } from 'lucide-react';
+import { auth } from '../../config/firebase';
+import {
+    reauthenticateWithCredential,
+    EmailAuthProvider,
+} from 'firebase/auth';
 
+/**
+ * Password-protected delete confirmation modal.
+ * Verifies the currently logged-in user's real Firebase password
+ * before executing the delete callback.
+ */
 const DeleteConfirmModal = ({ isOpen, onClose, onConfirm, title, itemType }) => {
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
+    const [loading, setLoading] = useState(false);
 
     if (!isOpen) return null;
 
-    const handleConfirm = (e) => {
+    const handleConfirm = async (e) => {
         e.preventDefault();
-        if (password === 'password123') {
-            onConfirm();
-            onClose();
-            setPassword('');
-            setError('');
-        } else {
-            setError('Incorrect password. Access denied.');
+        if (!password.trim()) {
+            setError('Please enter your password.');
+            return;
         }
+
+        setLoading(true);
+        setError('');
+
+        try {
+            const currentUser = auth.currentUser;
+            if (!currentUser || !currentUser.email) {
+                setError('You must be logged in to delete items.');
+                setLoading(false);
+                return;
+            }
+
+            // Re-authenticate with the user's real password
+            const credential = EmailAuthProvider.credential(currentUser.email, password);
+            await reauthenticateWithCredential(currentUser, credential);
+
+            // Password verified — execute the delete
+            onConfirm();
+            handleClose();
+        } catch (err) {
+            console.error('Delete auth error:', err.code);
+            if (err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
+                setError('Incorrect password. Access denied.');
+            } else if (err.code === 'auth/too-many-requests') {
+                setError('Too many attempts. Please wait a moment.');
+            } else {
+                setError('Authentication failed. Please try again.');
+            }
+        }
+        setLoading(false);
+    };
+
+    const handleClose = () => {
+        setPassword('');
+        setError('');
+        setLoading(false);
+        onClose();
     };
 
     return (
@@ -32,7 +76,7 @@ const DeleteConfirmModal = ({ isOpen, onClose, onConfirm, title, itemType }) => 
                             Are you sure you want to delete this {itemType}? This action cannot be undone.
                         </p>
                     </div>
-                    <button onClick={onClose} className="text-red-400 hover:text-red-700 ml-auto">
+                    <button onClick={handleClose} className="text-red-400 hover:text-red-700 ml-auto">
                         <X size={20} />
                     </button>
                 </div>
@@ -40,18 +84,19 @@ const DeleteConfirmModal = ({ isOpen, onClose, onConfirm, title, itemType }) => 
                 <form onSubmit={handleConfirm} className="p-6 space-y-4">
                     <div>
                         <label className="block text-sm font-semibold text-gray-700 mb-2">
-                            Admin Password Required
+                            Enter Your Password to Confirm
                         </label>
                         <input
                             type="password"
                             className={`w-full p-3 border rounded-lg focus:outline-none focus:ring-2 ${error ? 'border-red-300 ring-red-200' : 'border-gray-300 focus:ring-red-200 focus:border-red-500'}`}
-                            placeholder="Enter password..."
+                            placeholder="Enter your account password..."
                             value={password}
                             onChange={(e) => {
                                 setPassword(e.target.value);
                                 setError('');
                             }}
                             autoFocus
+                            disabled={loading}
                         />
                         {error && <p className="text-xs text-red-600 mt-2 font-medium flex items-center gap-1">
                             <X size={12} /> {error}
@@ -61,16 +106,19 @@ const DeleteConfirmModal = ({ isOpen, onClose, onConfirm, title, itemType }) => 
                     <div className="flex justify-end gap-3 pt-2">
                         <button
                             type="button"
-                            onClick={onClose}
-                            className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
+                            onClick={handleClose}
+                            disabled={loading}
+                            className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
                         >
                             Cancel
                         </button>
                         <button
                             type="submit"
-                            className="px-4 py-2 text-sm font-bold text-white bg-red-600 hover:bg-red-700 rounded-lg shadow-sm shadow-red-200 transition-colors"
+                            disabled={loading}
+                            className="px-4 py-2 text-sm font-bold text-white bg-red-600 hover:bg-red-700 rounded-lg shadow-sm shadow-red-200 transition-colors disabled:opacity-70 flex items-center gap-2"
                         >
-                            Confirm Delete
+                            {loading && <Loader2 size={14} className="animate-spin" />}
+                            {loading ? 'Verifying...' : 'Confirm Delete'}
                         </button>
                     </div>
                 </form>
