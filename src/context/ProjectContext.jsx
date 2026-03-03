@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { PROJECTS, UPDATES, ACTIONS, QA, DOCUMENTS } from '../data/mockData';
-import { db } from '../config/firebase';
+import { db, storage } from '../config/firebase';
 import {
     collection,
     doc,
@@ -12,6 +12,7 @@ import {
     query,
     orderBy
 } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 const ProjectContext = createContext();
 
