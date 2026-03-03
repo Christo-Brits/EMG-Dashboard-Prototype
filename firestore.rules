@@ -1,29 +1,60 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Helper function to check if user is admin
-    function isAdmin() {
-      return request.auth != null && request.auth.token.email.lower() == 'christo@emgroup.co.nz';
-    }
 
-    // Helper function to check if user is authenticated
     function isAuth() {
       return request.auth != null;
     }
 
-    // Projects: Anyone auth can read, only admin can write
-    match /projects/{projectId} {
-      allow read: if isAuth();
-      allow write: if isAdmin();
+    function isAdmin() {
+      return isAuth() &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
 
-      // Subcollections (updates, actions, qa, photos)
-      match /{collection}/{docId} {
-        allow read: if isAuth();
-        // Writes allowed if admin, OR if explicitly "QA" or "Actions" creation by auth users
-        // This is a simplified rule; production should be more granular per collection
-        allow create: if isAuth(); 
+    function hasProjectAccess(projectId) {
+      return isAdmin() ||
+        (isAuth() && projectId in get(/databases/$(database)/documents/users/$(request.auth.uid)).data.allowedProjects);
+    }
+
+    // User profiles
+    match /users/{userId} {
+      allow read: if isAuth() && (request.auth.uid == userId || isAdmin());
+      allow write: if isAdmin() || (isAuth() && request.auth.uid == userId
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name']));
+    }
+
+    // User notifications subcollection
+    match /users/{userId}/notifications/{notificationId} {
+      allow read, update: if isAuth() && request.auth.uid == userId;
+      allow create: if isAuth();
+      allow delete: if isAuth() && request.auth.uid == userId;
+    }
+
+    // Projects
+    match /projects/{projectId} {
+      allow read: if hasProjectAccess(projectId);
+      allow create: if isAdmin();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+
+      match /{subcollection}/{docId} {
+        allow read: if hasProjectAccess(projectId);
+        allow create: if hasProjectAccess(projectId);
         allow update, delete: if isAdmin();
       }
+    }
+
+    // Pending invites
+    match /pending_invites/{inviteId} {
+      allow read: if isAdmin() || (isAuth() && resource.data.email == request.auth.token.email);
+      allow create, update, delete: if isAdmin();
+    }
+
+    // Access requests
+    match /access_requests/{requestId} {
+      allow create: if isAuth();
+      allow read: if isAdmin() || (isAuth() && resource.data.userId == request.auth.uid);
+      allow update, delete: if isAdmin();
     }
   }
 }

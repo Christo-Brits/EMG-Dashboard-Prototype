@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { PROJECTS, UPDATES, ACTIONS, QA, DOCUMENTS } from '../data/mockData';
-import { db } from '../config/firebase';
+import { db, storage } from '../config/firebase';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import {
     collection,
     doc,
@@ -253,7 +254,7 @@ export const ProjectProvider = ({ children }) => {
     };
 
     // --- Documents (Full Structure Update) ---
-    const saveDocumentsStruture = async (newDocs) => {
+    const saveDocumentsStructure = async (newDocs) => {
         if (!activeProjectId) return;
         try {
             await setDoc(doc(db, 'projects', activeProjectId, 'data', 'documents'), { structure: newDocs });
@@ -289,7 +290,7 @@ export const ProjectProvider = ({ children }) => {
             });
             // Optimistic update
             setDocuments(updatedDocs);
-            saveDocumentsStruture(updatedDocs);
+            saveDocumentsStructure(updatedDocs);
 
         } catch (error) {
             console.error("Error uploading document:", error);
@@ -303,7 +304,7 @@ export const ProjectProvider = ({ children }) => {
             items: folder.items.filter(item => item.id !== fileId)
         }));
         setDocuments(newDocs);
-        saveDocumentsStruture(newDocs);
+        saveDocumentsStructure(newDocs);
     };
 
     // --- Project Details ---

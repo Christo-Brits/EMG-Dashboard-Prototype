@@ -3,6 +3,8 @@ import { HashRouter as Router, Routes, Route, Outlet, Navigate } from 'react-rou
 import { AuthProvider } from './context/AuthContext';
 import { ProjectProvider } from './context/ProjectContext';
 import Shell from './components/layout/Shell';
+import ProtectedRoute from './components/common/ProtectedRoute';
+import ProjectGuard from './components/common/ProjectGuard';
 
 import ProjectSelect from './pages/ProjectSelect';
 import Login from './pages/Login';
@@ -25,9 +27,9 @@ function App() {
           <Routes>
             <Route path="/" element={<ProjectSelect />} />
             <Route path="/login" element={<Login />} />
-            <Route element={<Shell />}>
+            <Route element={<ProtectedRoute><Shell /></ProtectedRoute>}>
               <Route path="/dashboard" element={<GlobalDashboard />} />
-              <Route path="/project/:projectId" element={<ProjectDashboard />}>
+              <Route path="/project/:projectId" element={<ProjectGuard><ProjectDashboard /></ProjectGuard>}>
                 <Route index element={<Navigate to="overview" replace />} />
                 <Route path="overview" element={<OverviewTab />} />
                 <Route path="updates" element={<UpdatesTab />} />

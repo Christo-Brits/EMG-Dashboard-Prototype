@@ -30,12 +30,11 @@ export const AuthProvider = ({ children }) => {
                         userData = userSnap.data();
                     } else {
                         // Create new user doc if it doesn't exist
-                        const isAdmin = currentUser.email.toLowerCase() === 'christo@emgroup.co.nz';
                         userData = {
                             email: currentUser.email,
-                            name: isAdmin ? 'Christo (Admin)' : currentUser.email.split('@')[0],
-                            role: isAdmin ? 'admin' : 'stakeholder',
-                            allowedProjects: isAdmin ? ['south-mall', 'north-end'] : ['south-mall'], // Default access
+                            name: currentUser.email.split('@')[0],
+                            role: 'stakeholder',
+                            allowedProjects: [],
                             createdAt: new Date()
                         };
                         await setDoc(userRef, userData);
@@ -51,9 +50,7 @@ export const AuthProvider = ({ children }) => {
 
                 setUser({
                     ...currentUser,
-                    ...userData,
-                    // Ensure admin override matches email even if DB says otherwise provided it's the master email
-                    role: currentUser.email.toLowerCase() === 'christo@emgroup.co.nz' ? 'admin' : userData.role
+                    ...userData
                 });
             } else {
                 setUser(null);

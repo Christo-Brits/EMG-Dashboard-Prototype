@@ -16,11 +16,14 @@ const UpdatesTab = () => {
     const [newUpdate, setNewUpdate] = useState('');
     const [tag, setTag] = useState('Progress');
 
-    if (newUpdate.trim()) {
-        addUpdate(newUpdate, user?.name || 'Unknown');
-        setNewUpdate('');
-        setShowForm(false);
-    }
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        if (newUpdate.trim()) {
+            addUpdate(newUpdate, user?.name || 'Unknown');
+            setNewUpdate('');
+            setShowForm(false);
+        }
+    };
 
     const startEditing = (update) => {
         setEditingId(update.id);

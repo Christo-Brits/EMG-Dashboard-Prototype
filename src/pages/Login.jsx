@@ -26,10 +26,10 @@ const Login = () => {
                 setIsLoginMode(true);
             } else if (isLoginMode) {
                 await login(email, password);
-                navigate('/project/south-mall');
+                navigate('/');
             } else {
                 await signup(email, password);
-                navigate('/project/south-mall');
+                navigate('/');
             }
         } catch (err) {
             console.error("Auth Error:", err);
