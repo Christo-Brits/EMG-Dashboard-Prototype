@@ -1,5 +1,5 @@
 import React from 'react';
-import { HashRouter as Router, Routes, Route, Outlet, Navigate } from 'react-router-dom';
+import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { ProjectProvider } from './context/ProjectContext';
 import Shell from './components/layout/Shell';
@@ -11,6 +11,11 @@ import Login from './pages/Login';
 import GlobalDashboard from './pages/GlobalDashboard';
 import ProjectDashboard from './pages/ProjectDashboard';
 import QADetail from './pages/QADetail';
+import UserSettings from './pages/UserSettings';
+
+import CreateProject from './pages/admin/CreateProject';
+import EditProject from './pages/admin/EditProject';
+import UserManagement from './pages/admin/UserManagement';
 
 import OverviewTab from './components/project/OverviewTab';
 import UpdatesTab from './components/project/UpdatesTab';
@@ -29,6 +34,7 @@ function App() {
             <Route path="/login" element={<Login />} />
             <Route element={<ProtectedRoute><Shell /></ProtectedRoute>}>
               <Route path="/dashboard" element={<GlobalDashboard />} />
+              <Route path="/settings" element={<UserSettings />} />
               <Route path="/project/:projectId" element={<ProjectGuard><ProjectDashboard /></ProjectGuard>}>
                 <Route index element={<Navigate to="overview" replace />} />
                 <Route path="overview" element={<OverviewTab />} />
@@ -39,6 +45,11 @@ function App() {
                 <Route path="qa" element={<QATab />} />
               </Route>
               <Route path="/question/:id" element={<QADetail />} />
+
+              {/* Admin Routes */}
+              <Route path="/admin/users" element={<ProtectedRoute adminOnly><UserManagement /></ProtectedRoute>} />
+              <Route path="/admin/projects/new" element={<ProtectedRoute adminOnly><CreateProject /></ProtectedRoute>} />
+              <Route path="/admin/projects/:projectId/edit" element={<ProtectedRoute adminOnly><EditProject /></ProtectedRoute>} />
             </Route>
           </Routes>
         </Router>
