@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
-import { Folder, FileText, Upload, ChevronRight, ChevronDown, Trash2, X, Download } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { Folder, FileText, Upload, ChevronRight, ChevronDown, Trash2, X, Download, Search, Loader2 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useProjectData } from '../../context/ProjectContext';
+import { useToast } from '../common/Toast';
 import DeleteConfirmModal from '../common/DeleteConfirmModal';
 
-const UploadModal = ({ isOpen, onClose, folders, onUpload }) => {
+const UploadModal = ({ isOpen, onClose, folders, onUpload, isUploading }) => {
     const [selectedFile, setSelectedFile] = useState(null);
     const [selectedFolderId, setSelectedFolderId] = useState('');
 
@@ -14,7 +15,6 @@ const UploadModal = ({ isOpen, onClose, folders, onUpload }) => {
         e.preventDefault();
         if (selectedFile && selectedFolderId) {
             onUpload(selectedFile, selectedFolderId);
-            onClose();
             setSelectedFile(null);
             setSelectedFolderId('');
         }
@@ -25,7 +25,7 @@ const UploadModal = ({ isOpen, onClose, folders, onUpload }) => {
             <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
                 <div className="flex justify-between items-center p-4 border-b border-gray-100">
                     <h3 className="font-semibold text-gray-800">Upload Document</h3>
-                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600" disabled={isUploading}>
                         <X size={20} />
                     </button>
                 </div>
@@ -36,6 +36,7 @@ const UploadModal = ({ isOpen, onClose, folders, onUpload }) => {
                             type="file"
                             required
                             onChange={(e) => setSelectedFile(e.target.files[0])}
+                            disabled={isUploading}
                             className="block w-full text-sm text-gray-500
                                 file:mr-4 file:py-2 file:px-4
                                 file:rounded-full file:border-0
@@ -51,6 +52,7 @@ const UploadModal = ({ isOpen, onClose, folders, onUpload }) => {
                             required
                             value={selectedFolderId}
                             onChange={(e) => setSelectedFolderId(e.target.value)}
+                            disabled={isUploading}
                             className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                         >
                             <option value="" disabled>Select a folder...</option>
@@ -60,9 +62,13 @@ const UploadModal = ({ isOpen, onClose, folders, onUpload }) => {
                         </select>
                     </div>
                     <div className="pt-2 flex justify-end gap-2">
-                        <button type="button" onClick={onClose} className="btn btn-outline text-sm">Cancel</button>
-                        <button type="submit" className="btn btn-primary text-sm flex items-center gap-2">
-                            <Upload size={16} /> Upload Now
+                        <button type="button" onClick={onClose} className="btn btn-outline text-sm" disabled={isUploading}>Cancel</button>
+                        <button type="submit" className="btn btn-primary text-sm flex items-center gap-2" disabled={isUploading}>
+                            {isUploading ? (
+                                <><Loader2 size={16} className="animate-spin" /> Uploading...</>
+                            ) : (
+                                <><Upload size={16} /> Upload Now</>
+                            )}
                         </button>
                     </div>
                 </form>
@@ -74,6 +80,7 @@ const UploadModal = ({ isOpen, onClose, folders, onUpload }) => {
 const DocumentsTab = () => {
     const { user, isAdmin } = useAuth();
     const { documents, addDocument, deleteDocument } = useProjectData();
+    const toast = useToast();
 
     const [expandedFolders, setExpandedFolders] = useState(['folder-1', 'folder-2', 'folder-3', 'folder-4']);
 
@@ -81,6 +88,31 @@ const DocumentsTab = () => {
     const [uploadModalOpen, setUploadModalOpen] = useState(false);
     const [fileToDelete, setFileToDelete] = useState(null);
     const [isUploading, setIsUploading] = useState(false);
+
+    const [searchQuery, setSearchQuery] = useState('');
+
+    const filteredDocuments = useMemo(() => {
+        if (!searchQuery.trim()) return documents;
+        const q = searchQuery.toLowerCase();
+        return documents.map(folder => ({
+            ...folder,
+            items: folder.items.filter(file =>
+                file.name.toLowerCase().includes(q) ||
+                (file.author || '').toLowerCase().includes(q) ||
+                (file.type || '').toLowerCase().includes(q)
+            )
+        })).filter(folder =>
+            folder.name.toLowerCase().includes(q) || folder.items.length > 0
+        );
+    }, [documents, searchQuery]);
+
+    const totalFiles = useMemo(() => {
+        return documents.reduce((sum, folder) => sum + folder.items.length, 0);
+    }, [documents]);
+
+    const filteredFileCount = useMemo(() => {
+        return filteredDocuments.reduce((sum, folder) => sum + folder.items.length, 0);
+    }, [filteredDocuments]);
 
     const toggleFolder = (folderId) => {
         setExpandedFolders(prev =>
@@ -100,6 +132,7 @@ const DocumentsTab = () => {
         if (fileToDelete) {
             deleteDocument(fileToDelete);
             setFileToDelete(null);
+            toast.success('Document deleted.');
         }
     };
 
@@ -110,8 +143,11 @@ const DocumentsTab = () => {
             if (!expandedFolders.includes(folderId)) {
                 setExpandedFolders(prev => [...prev, folderId]);
             }
+            setUploadModalOpen(false);
+            toast.success('Document uploaded successfully.');
         } catch (error) {
             console.error("Upload failed", error);
+            toast.error('Failed to upload document. Please try again.');
         } finally {
             setIsUploading(false);
         }
@@ -138,6 +174,7 @@ const DocumentsTab = () => {
                 onClose={() => setUploadModalOpen(false)}
                 folders={documents}
                 onUpload={handleExecuteUpload}
+                isUploading={isUploading}
             />
 
             {/* Header */}
@@ -151,84 +188,117 @@ const DocumentsTab = () => {
                         disabled={isUploading}
                         className="btn btn-outline bg-white text-xs whitespace-nowrap gap-2 hover:bg-blue-50 border-blue-200 text-blue-700 disabled:opacity-50"
                     >
-                        {isUploading ? <span className="animate-pulse">Uploading...</span> : <><Upload size={14} /> Upload Document</>}
+                        <Upload size={14} /> Upload Document
                     </button>
                 )}
             </div>
 
-            <div className="border border-gray-200 rounded-lg overflow-hidden bg-white shadow-sm">
-                <div className="grid grid-cols-12 bg-gray-50 border-b border-gray-200 text-xs font-semibold text-gray-500 uppercase tracking-wider py-3 px-4">
-                    <div className="col-span-5">File Name</div>
-                    <div className="col-span-2">Type</div>
-                    <div className="col-span-2">Uploaded By</div>
-                    <div className="col-span-2 text-right">Date</div>
-                    <div className="col-span-1 text-center">Action</div>
+            {/* Search */}
+            {totalFiles > 0 && (
+                <div className="relative mb-6">
+                    <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                    <input
+                        type="text"
+                        placeholder="Search documents by name, type, or author..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                    />
+                    {searchQuery && (
+                        <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                            <X size={14} />
+                        </button>
+                    )}
                 </div>
+            )}
 
-                <div className="divide-y divide-gray-100">
-                    {documents.map(folder => {
-                        const isExpanded = expandedFolders.includes(folder.id);
-                        return (
-                            <React.Fragment key={folder.id}>
-                                <div
-                                    onClick={() => toggleFolder(folder.id)}
-                                    className="grid grid-cols-12 items-center py-3 px-4 hover:bg-gray-50 cursor-pointer transition-colors group"
-                                >
-                                    <div className="col-span-5 flex items-center gap-3">
-                                        <span className="text-gray-400 group-hover:text-gray-600">
-                                            {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                                        </span>
-                                        <Folder size={18} className="text-amber-400 fill-amber-100" />
-                                        <span className="font-semibold text-gray-700 text-sm group-hover:text-blue-700">{folder.name}</span>
-                                        <span className="text-xs text-gray-400 font-normal">({folder.items.length})</span>
-                                    </div>
-                                    <div className="col-span-2 text-xs text-gray-400 font-medium">Folder</div>
-                                    <div className="col-span-2 text-xs text-gray-400">-</div>
-                                    <div className="col-span-2 text-xs text-gray-400 text-right">-</div>
-                                    <div className="col-span-1"></div>
-                                </div>
+            {searchQuery && (
+                <p className="text-xs text-gray-400 mb-3">
+                    Showing {filteredFileCount} of {totalFiles} files
+                </p>
+            )}
 
-                                {isExpanded && folder.items.map(file => (
-                                    <div key={file.id} className="grid grid-cols-12 items-center py-2.5 px-4 bg-slate-50/30 hover:bg-blue-50/30 border-l-4 border-l-transparent hover:border-l-blue-400 transition-all pl-12 group/file">
+            {filteredDocuments.length === 0 ? (
+                <div className="text-center py-12 text-gray-400 border border-gray-200 rounded-lg">
+                    <Search size={28} className="text-gray-300 mx-auto mb-3" />
+                    <p className="text-sm font-medium text-gray-500 mb-1">No documents match your search</p>
+                    <p className="text-xs text-gray-400">Try adjusting your search criteria</p>
+                </div>
+            ) : (
+                <div className="border border-gray-200 rounded-lg overflow-hidden bg-white shadow-sm">
+                    <div className="grid grid-cols-12 bg-gray-50 border-b border-gray-200 text-xs font-semibold text-gray-500 uppercase tracking-wider py-3 px-4">
+                        <div className="col-span-5">File Name</div>
+                        <div className="col-span-2">Type</div>
+                        <div className="col-span-2 hidden sm:block">Uploaded By</div>
+                        <div className="col-span-2 text-right hidden sm:block">Date</div>
+                        <div className="col-span-1 text-center">Action</div>
+                    </div>
+
+                    <div className="divide-y divide-gray-100">
+                        {filteredDocuments.map(folder => {
+                            const isExpanded = expandedFolders.includes(folder.id);
+                            return (
+                                <React.Fragment key={folder.id}>
+                                    <div
+                                        onClick={() => toggleFolder(folder.id)}
+                                        className="grid grid-cols-12 items-center py-3 px-4 hover:bg-gray-50 cursor-pointer transition-colors group"
+                                    >
                                         <div className="col-span-5 flex items-center gap-3">
-                                            <FileText size={16} className="text-gray-400" />
-                                            <span
-                                                className="text-sm text-gray-600 hover:text-gray-900 hover:underline cursor-pointer truncate mr-2"
-                                                onClick={() => handleDownloadFile(file)}
-                                            >
-                                                {file.name}
+                                            <span className="text-gray-400 group-hover:text-gray-600">
+                                                {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
                                             </span>
+                                            <Folder size={18} className="text-amber-400 fill-amber-100" />
+                                            <span className="font-semibold text-gray-700 text-sm group-hover:text-blue-700">{folder.name}</span>
+                                            <span className="text-xs text-gray-400 font-normal">({folder.items.length})</span>
                                         </div>
-                                        <div className="col-span-2 text-xs text-gray-500 font-mono bg-gray-100 inline-block px-1.5 py-0.5 rounded w-fit">{file.type}</div>
-                                        <div className="col-span-2 text-xs text-gray-500">{file.author}</div>
-                                        <div className="col-span-2 text-xs text-gray-500 text-right font-medium">{file.date}</div>
-                                        <div className="col-span-1 flex items-center justify-center gap-1">
-                                            {file.url && (
-                                                <button
-                                                    onClick={() => handleDownloadFile(file)}
-                                                    className="text-gray-400 hover:text-blue-600 transition-colors p-1"
-                                                    title="Download"
-                                                >
-                                                    <Download size={14} />
-                                                </button>
-                                            )}
-                                            {isAdmin && (
-                                                <button
-                                                    onClick={(e) => confirmDelete(e, file.id)}
-                                                    className="text-gray-300 hover:text-red-500 opacity-0 group-hover/file:opacity-100 transition-all p-1"
-                                                    title="Delete Document"
-                                                >
-                                                    <Trash2 size={14} />
-                                                </button>
-                                            )}
-                                        </div>
+                                        <div className="col-span-2 text-xs text-gray-400 font-medium">Folder</div>
+                                        <div className="col-span-2 text-xs text-gray-400 hidden sm:block">-</div>
+                                        <div className="col-span-2 text-xs text-gray-400 text-right hidden sm:block">-</div>
+                                        <div className="col-span-1"></div>
                                     </div>
-                                ))}
-                            </React.Fragment>
-                        );
-                    })}
+
+                                    {isExpanded && folder.items.map(file => (
+                                        <div key={file.id} className="grid grid-cols-12 items-center py-2.5 px-4 bg-slate-50/30 hover:bg-blue-50/30 border-l-4 border-l-transparent hover:border-l-blue-400 transition-all pl-12 group/file">
+                                            <div className="col-span-5 flex items-center gap-3">
+                                                <FileText size={16} className="text-gray-400 flex-shrink-0" />
+                                                <span
+                                                    className="text-sm text-gray-600 hover:text-gray-900 hover:underline cursor-pointer truncate mr-2"
+                                                    onClick={() => handleDownloadFile(file)}
+                                                >
+                                                    {file.name}
+                                                </span>
+                                            </div>
+                                            <div className="col-span-2"><span className="text-xs text-gray-500 font-mono bg-gray-100 inline-block px-1.5 py-0.5 rounded">{file.type}</span></div>
+                                            <div className="col-span-2 text-xs text-gray-500 hidden sm:block">{file.author}</div>
+                                            <div className="col-span-2 text-xs text-gray-500 text-right font-medium hidden sm:block">{file.date}</div>
+                                            <div className="col-span-1 flex items-center justify-center gap-1">
+                                                {file.url && (
+                                                    <button
+                                                        onClick={() => handleDownloadFile(file)}
+                                                        className="text-gray-400 hover:text-blue-600 transition-colors p-1"
+                                                        title="Download"
+                                                    >
+                                                        <Download size={14} />
+                                                    </button>
+                                                )}
+                                                {isAdmin && (
+                                                    <button
+                                                        onClick={(e) => confirmDelete(e, file.id)}
+                                                        className="text-gray-300 hover:text-red-500 opacity-0 group-hover/file:opacity-100 transition-all p-1"
+                                                        title="Delete Document"
+                                                    >
+                                                        <Trash2 size={14} />
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </React.Fragment>
+                            );
+                        })}
+                    </div>
                 </div>
-            </div>
+            )}
         </div>
     );
 };

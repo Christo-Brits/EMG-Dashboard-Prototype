@@ -2,6 +2,7 @@ import React from 'react';
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { ProjectProvider } from './context/ProjectContext';
+import { ToastProvider } from './components/common/Toast';
 import Shell from './components/layout/Shell';
 
 import ProjectSelect from './pages/ProjectSelect';
@@ -24,6 +25,7 @@ function App() {
   return (
     <AuthProvider>
       <ProjectProvider>
+        <ToastProvider>
         <Router>
           <Routes>
             <Route path="/" element={<ProjectSelect />} />
@@ -62,6 +64,7 @@ function App() {
             </Route>
           </Routes>
         </Router>
+        </ToastProvider>
       </ProjectProvider>
     </AuthProvider>
   );
