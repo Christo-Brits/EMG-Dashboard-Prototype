@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Outlet, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { User, LogOut, LogIn, Settings, Users, Plus, ChevronDown } from 'lucide-react';
+import NotificationBell from '../common/NotificationBell';
 
 const Shell = () => {
     const { user, isAdmin, logout } = useAuth();
@@ -39,6 +40,8 @@ const Shell = () => {
                         )}
 
                         {isAdmin && <span className="bg-slate-800 text-white text-xs font-medium px-2.5 py-1 rounded">Admin</span>}
+
+                        {user && <NotificationBell />}
 
                         {user ? (
                             <div className="flex items-center gap-3 pl-4 border-l border-gray-200 relative" ref={dropdownRef}>

@@ -5,6 +5,7 @@ import {
     collection,
     doc,
     documentId,
+    getDoc,
     onSnapshot,
     addDoc,
     updateDoc,
@@ -12,7 +13,8 @@ import {
     setDoc,
     query,
     where,
-    orderBy
+    orderBy,
+    Timestamp
 } from 'firebase/firestore';
 import { useAuth } from './AuthContext';
 
@@ -33,6 +35,7 @@ export const ProjectProvider = ({ children }) => {
     const [activeProjectId, setActiveProjectId] = useState(null);
     const [projects, setProjects] = useState([]);
     const [projectsLoading, setProjectsLoading] = useState(true);
+    const [dataLoading, setDataLoading] = useState(false);
     const [updates, setUpdates] = useState([]);
     const [actions, setActions] = useState([]);
     const [qa, setQa] = useState([]);
@@ -82,8 +85,13 @@ export const ProjectProvider = ({ children }) => {
             setQa([]);
             setPhotos([]);
             setDocuments([]);
+            setDataLoading(false);
             return;
         }
+
+        setDataLoading(true);
+        let loadedCount = 0;
+        const checkLoaded = () => { loadedCount++; if (loadedCount >= 5) setDataLoading(false); };
 
         const PID = activeProjectId;
 
@@ -93,14 +101,16 @@ export const ProjectProvider = ({ children }) => {
             const data = snapshot.docs.map(d => ({ ...d.data(), firestoreId: d.id }));
             data.sort((a, b) => b.id - a.id);
             setUpdates(data);
-        }, (err) => console.error("Updates Sync Error:", err));
+            checkLoaded();
+        }, (err) => { console.error("Updates Sync Error:", err); checkLoaded(); });
 
         // Actions
         const actionsRef = collection(db, 'projects', PID, 'actions');
         const unsubActions = onSnapshot(actionsRef, (snapshot) => {
             const data = snapshot.docs.map(d => ({ ...d.data(), firestoreId: d.id }));
             setActions(data);
-        });
+            checkLoaded();
+        }, () => checkLoaded());
 
         // Q&A
         const qaRef = collection(db, 'projects', PID, 'qa');
@@ -108,7 +118,8 @@ export const ProjectProvider = ({ children }) => {
             const data = snapshot.docs.map(d => ({ ...d.data(), firestoreId: d.id }));
             data.sort((a, b) => b.id - a.id);
             setQa(data);
-        });
+            checkLoaded();
+        }, () => checkLoaded());
 
         // Photos
         const photosRef = collection(db, 'projects', PID, 'photos');
@@ -116,7 +127,8 @@ export const ProjectProvider = ({ children }) => {
             const data = snapshot.docs.map(d => ({ ...d.data(), firestoreId: d.id }));
             data.sort((a, b) => b.id - a.id);
             setPhotos(data);
-        });
+            checkLoaded();
+        }, () => checkLoaded());
 
         // Documents (single JSON blob for hierarchy)
         const docStructRef = doc(db, 'projects', PID, 'data', 'documents');
@@ -127,7 +139,8 @@ export const ProjectProvider = ({ children }) => {
                 setDoc(docStructRef, { structure: DEFAULT_FOLDERS });
                 setDocuments(DEFAULT_FOLDERS);
             }
-        });
+            checkLoaded();
+        }, () => checkLoaded());
 
         return () => {
             unsubUpdates();
@@ -169,6 +182,37 @@ export const ProjectProvider = ({ children }) => {
         }
     };
 
+    // --- Notifications (Phase 6.1) ---
+    const notifyProjectTeam = async (type, message, link) => {
+        if (!activeProjectId || !user) return;
+        try {
+            const projectDoc = await getDoc(doc(db, 'projects', activeProjectId));
+            if (!projectDoc.exists()) return;
+            const projectData = projectDoc.data();
+            const teamMembers = projectData.teamMembers || [];
+            const projectName = projectData.name || activeProjectId;
+
+            for (const uid of teamMembers) {
+                if (uid === user.uid) continue; // Don't notify the author
+                try {
+                    await addDoc(collection(db, 'users', uid, 'notifications'), {
+                        type,
+                        projectId: activeProjectId,
+                        projectName,
+                        message,
+                        link: link || `/project/${activeProjectId}`,
+                        read: false,
+                        createdAt: Timestamp.now()
+                    });
+                } catch (e) {
+                    // Silent fail for individual notification writes
+                }
+            }
+        } catch (e) {
+            console.error('Error sending notifications:', e);
+        }
+    };
+
     // --- File Upload ---
     const uploadFile = async (file, path) => {
         if (!file) return null;
@@ -184,6 +228,7 @@ export const ProjectProvider = ({ children }) => {
         });
         const date = new Date().toISOString().split('T')[0];
         addToCollection('updates', { text, author, timestamp, date, type: 'progress' });
+        notifyProjectTeam('update', `${author} posted a progress update`, `/project/${activeProjectId}/updates`);
     };
     const deleteUpdate = (id) => {
         const item = updates.find(u => u.id === id);
@@ -197,6 +242,7 @@ export const ProjectProvider = ({ children }) => {
     // --- Actions ---
     const addAction = (text, assignee, dueDate) => {
         addToCollection('actions', { text, assignee, dueDate, status: 'Open' });
+        notifyProjectTeam('action', `New action raised: ${text}`, `/project/${activeProjectId}/actions`);
     };
     const updateActionStatus = (id, status) => {
         const item = actions.find(a => a.id === id);
@@ -216,6 +262,8 @@ export const ProjectProvider = ({ children }) => {
             replies: [],
             date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
         });
+        const title = question.title || 'a question';
+        notifyProjectTeam('qa', `${author} raised ${title}`, `/project/${activeProjectId}/qa`);
     };
 
     const addReply = (questionId, replyContent, author) => {
@@ -322,6 +370,7 @@ export const ProjectProvider = ({ children }) => {
         <ProjectContext.Provider value={{
             projects,
             projectsLoading,
+            dataLoading,
             updates,
             actions,
             qa,
