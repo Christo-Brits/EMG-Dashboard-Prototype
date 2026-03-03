@@ -1,24 +1,21 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ShieldX, Mail, ChevronLeft, CheckCircle2 } from 'lucide-react';
+import { ShieldX, Send, ChevronLeft, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { ACCESS_REQUEST_EMAIL } from '../data/mockData';
 
 const AccessDenied = () => {
     const navigate = useNavigate();
-    const { user, logout } = useAuth();
+    const { user, logout, requestAccess } = useAuth();
     const [requestSent, setRequestSent] = useState(false);
+    const [submitting, setSubmitting] = useState(false);
 
-    const handleRequestAccess = () => {
-        const subject = encodeURIComponent('EMG Portal - Access Request');
-        const body = encodeURIComponent(
-            `Hi Christo,\n\nI would like to request access to the EMG Project Portal.\n\n` +
-            `Name: ${user?.name || 'N/A'}\n` +
-            `Email: ${user?.email || 'N/A'}\n\n` +
-            `Please grant me access to the relevant project(s).\n\nThank you.`
-        );
-        window.open(`mailto:${ACCESS_REQUEST_EMAIL}?subject=${subject}&body=${body}`, '_blank');
-        setRequestSent(true);
+    const handleRequestAccess = async () => {
+        setSubmitting(true);
+        const success = await requestAccess();
+        setSubmitting(false);
+        if (success) {
+            setRequestSent(true);
+        }
     };
 
     return (
@@ -41,22 +38,23 @@ const AccessDenied = () => {
                     </div>
                 )}
 
-                {!requestSent ? (
+                {user && !requestSent ? (
                     <button
                         onClick={handleRequestAccess}
-                        className="btn btn-primary w-full py-3 gap-2 mb-3"
+                        disabled={submitting}
+                        className="btn btn-primary w-full py-3 gap-2 mb-3 disabled:opacity-70 disabled:cursor-not-allowed"
                     >
-                        <Mail size={16} /> Request Access
+                        <Send size={16} /> {submitting ? 'Submitting...' : 'Request Access'}
                     </button>
-                ) : (
+                ) : requestSent ? (
                     <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-3 flex items-center gap-3">
                         <CheckCircle2 size={20} className="text-green-600 flex-shrink-0" />
                         <div className="text-left">
-                            <p className="text-sm font-medium text-green-800">Request initiated</p>
-                            <p className="text-xs text-green-600">An email has been prepared to {ACCESS_REQUEST_EMAIL}. Please send it to complete your request.</p>
+                            <p className="text-sm font-medium text-green-800">Request submitted</p>
+                            <p className="text-xs text-green-600">Your access request has been sent to the administrator for review.</p>
                         </div>
                     </div>
-                )}
+                ) : null}
 
                 <div className="flex gap-3">
                     <button

@@ -10,6 +10,7 @@ import GlobalDashboard from './pages/GlobalDashboard';
 import ProjectDashboard from './pages/ProjectDashboard';
 import QADetail from './pages/QADetail';
 import AccessDenied from './pages/AccessDenied';
+import AdminPanel from './pages/AdminPanel';
 import ProtectedRoute from './components/common/ProtectedRoute';
 
 import OverviewTab from './components/project/OverviewTab';
@@ -33,6 +34,11 @@ function App() {
               <Route path="/dashboard" element={
                 <ProtectedRoute>
                   <GlobalDashboard />
+                </ProtectedRoute>
+              } />
+              <Route path="/admin" element={
+                <ProtectedRoute>
+                  <AdminPanel />
                 </ProtectedRoute>
               } />
               <Route path="/project/:projectId" element={

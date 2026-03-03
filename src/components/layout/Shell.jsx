@@ -1,7 +1,7 @@
 import React from 'react';
 import { Outlet, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { User, LogOut, LogIn, Shield } from 'lucide-react';
+import { User, LogOut, LogIn, Shield, Settings } from 'lucide-react';
 
 const Shell = () => {
     const { user, isAdmin, logout } = useAuth();
@@ -24,6 +24,16 @@ const Shell = () => {
                             <span className={`text-xs font-medium px-2.5 py-1 rounded flex items-center gap-1 ${isAdmin ? 'bg-slate-800 text-white' : 'bg-blue-50 text-blue-700 border border-blue-200'}`}>
                                 {isAdmin ? <><Shield size={12} /> Admin</> : 'User'}
                             </span>
+                        )}
+
+                        {isAdmin && (
+                            <Link
+                                to="/admin"
+                                className="p-2 text-gray-400 hover:text-[var(--color-brand-primary)] transition-colors"
+                                title="User Management"
+                            >
+                                <Settings size={18} />
+                            </Link>
                         )}
 
                         {user ? (

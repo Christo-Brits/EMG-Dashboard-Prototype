@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { auth, db } from '../config/firebase';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import {
     signInWithEmailAndPassword,
     createUserWithEmailAndPassword,
@@ -101,6 +101,24 @@ export const AuthProvider = ({ children }) => {
         return !!user;
     };
 
+    const requestAccess = async (projectId) => {
+        if (!user) return;
+        try {
+            await addDoc(collection(db, 'accessRequests'), {
+                userId: user.uid,
+                userEmail: user.email,
+                userName: user.name || user.email.split('@')[0],
+                projectId: projectId || null,
+                status: 'pending',
+                createdAt: serverTimestamp()
+            });
+            return true;
+        } catch (e) {
+            console.error("Error submitting access request:", e);
+            return false;
+        }
+    };
+
     return (
         <AuthContext.Provider value={{
             user,
@@ -112,6 +130,7 @@ export const AuthProvider = ({ children }) => {
             hasProjectAccess,
             canWrite,
             canDownloadPdf,
+            requestAccess,
             accessRequestEmail: ACCESS_REQUEST_EMAIL
         }}>
             {!loading && children}

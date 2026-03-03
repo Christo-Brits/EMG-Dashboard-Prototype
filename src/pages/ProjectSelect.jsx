@@ -1,15 +1,16 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronRight, Lock, AlertCircle, X, Mail, CheckCircle2 } from 'lucide-react';
-import { PROJECTS, ACCESS_REQUEST_EMAIL } from '../data/mockData';
+import { ChevronRight, Lock, AlertCircle, X, Send, CheckCircle2 } from 'lucide-react';
+import { PROJECTS } from '../data/mockData';
 import { useAuth } from '../context/AuthContext';
 
 const ProjectSelect = () => {
     const navigate = useNavigate();
-    const { user, isAdmin, hasProjectAccess, logout } = useAuth();
+    const { user, isAdmin, hasProjectAccess, logout, requestAccess } = useAuth();
     const [selectedProject, setSelectedProject] = useState('');
     const [showPopup, setShowPopup] = useState(false);
     const [requestSent, setRequestSent] = useState(false);
+    const [submitting, setSubmitting] = useState(false);
 
     const handleContinue = () => {
         if (!selectedProject) return;
@@ -27,22 +28,22 @@ const ProjectSelect = () => {
                 navigate(`/login/${selectedProject}`);
             }
         } else {
-            setShowPopup(true);
+            if (user) {
+                setShowPopup(true);
+            } else {
+                navigate(`/login/${selectedProject}`);
+            }
         }
     };
 
-    const handleRequestAccess = () => {
-        const projectName = PROJECTS.find(p => p.id === selectedProject)?.name || selectedProject;
-        const subject = encodeURIComponent(`EMG Portal - Access Request: ${projectName}`);
-        const body = encodeURIComponent(
-            `Hi Christo,\n\nI would like to request access to the following project on the EMG Portal:\n\n` +
-            `Project: ${projectName}\n` +
-            `Name: ${user?.name || 'N/A'}\n` +
-            `Email: ${user?.email || 'N/A'}\n\n` +
-            `Please review and grant me access.\n\nThank you.`
-        );
-        window.open(`mailto:${ACCESS_REQUEST_EMAIL}?subject=${subject}&body=${body}`, '_blank');
-        setRequestSent(true);
+    const handleRequestAccess = async () => {
+        if (!user) return;
+        setSubmitting(true);
+        const success = await requestAccess(selectedProject);
+        setSubmitting(false);
+        if (success) {
+            setRequestSent(true);
+        }
     };
 
     const selectedProjectData = PROJECTS.find(p => p.id === selectedProject);
@@ -136,21 +137,22 @@ const ProjectSelect = () => {
                             }
                         </p>
                         <p className="text-xs text-gray-400 mb-6">
-                            To request access, an email will be sent to the project administrator for approval.
+                            Your request will be sent to the project administrator for review.
                         </p>
 
                         {!requestSent ? (
                             <button
                                 onClick={handleRequestAccess}
-                                className="btn btn-primary w-full text-sm gap-2 mb-3"
+                                disabled={submitting}
+                                className="btn btn-primary w-full text-sm gap-2 mb-3 disabled:opacity-70 disabled:cursor-not-allowed"
                             >
-                                <Mail size={14} /> Request Access via Email
+                                <Send size={14} /> {submitting ? 'Submitting...' : 'Request Access'}
                             </button>
                         ) : (
                             <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-3 flex items-center gap-2">
                                 <CheckCircle2 size={16} className="text-green-600 flex-shrink-0" />
                                 <p className="text-xs text-green-700 text-left">
-                                    Email prepared to <strong>{ACCESS_REQUEST_EMAIL}</strong>. Please send it to complete your request.
+                                    Your access request has been submitted. The administrator will review it shortly.
                                 </p>
                             </div>
                         )}
