@@ -1,10 +1,12 @@
 import React from 'react';
 import { Outlet, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { roleLabel } from '../../utils/permissions';
 import { User, LogOut, LogIn } from 'lucide-react';
 
 const Shell = () => {
     const { user, isAdmin, logout } = useAuth();
+    const displayRole = isAdmin ? 'Admin' : (user?.globalRole === 'user' ? null : roleLabel(user?.globalRole));
 
     return (
         <div className="min-h-screen flex flex-col">
@@ -14,7 +16,7 @@ const Shell = () => {
                         <img src={`${import.meta.env.BASE_URL}logo.png`} alt="EMG Logo" className="h-8 w-auto object-contain" />
                     </Link>
                     <div className="flex items-center gap-4">
-                        {isAdmin && <span className="bg-slate-800 text-white text-xs font-medium px-2.5 py-1 rounded">Admin</span>}
+                        {displayRole && <span className="bg-slate-800 text-white text-xs font-medium px-2.5 py-1 rounded">{displayRole}</span>}
 
                         {user ? (
                             <div className="flex items-center gap-3 pl-4 border-l border-gray-200">

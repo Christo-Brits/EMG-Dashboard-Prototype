@@ -2,12 +2,14 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useProjectData } from '../../context/ProjectContext';
 import { useAuth } from '../../context/AuthContext';
+import { useProjectPermissions } from '../../hooks/useProjectPermissions';
 import { MessageSquare, ChevronRight, HelpCircle, X, Trash2 } from 'lucide-react';
 import DeleteConfirmModal from '../common/DeleteConfirmModal';
 
 const QATab = () => {
     const { qa, addQuestion, deleteQuestion } = useProjectData();
-    const { user, isAdmin } = useAuth();
+    const { user } = useAuth();
+    const { canAskQuestions, canDeleteItems } = useProjectPermissions();
 
     const [showForm, setShowForm] = useState(false);
     const [newQuestion, setNewQuestion] = useState({ title: '', context: '', category: 'RFI' });
@@ -44,7 +46,7 @@ const QATab = () => {
                     <h2 className="text-lg font-semibold text-[var(--color-brand-primary)]">Project Questions</h2>
                     <p className="text-sm text-[var(--color-text-secondary)]">Queries and clarifications shared across the project team</p>
                 </div>
-                {user && (
+                {canAskQuestions && (
                     <button
                         onClick={() => setShowForm(!showForm)}
                         className="btn btn-primary text-sm gap-2"
@@ -156,7 +158,7 @@ const QATab = () => {
                             </div>
 
                             {/* Admin Delete Button - Absolute Positioned */}
-                            {isAdmin && (
+                            {canDeleteItems && (
                                 <button
                                     onClick={(e) => confirmDelete(e, item.id)}
                                     className="absolute top-4 right-4 p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-full transition-all opacity-0 group-hover:opacity-100 z-10"

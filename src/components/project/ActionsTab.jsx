@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import { useProjectData } from '../../context/ProjectContext';
+import { useProjectPermissions } from '../../hooks/useProjectPermissions';
 import { useAuth } from '../../context/AuthContext';
 import { CheckCircle2, Circle, Plus, X, Trash2 } from 'lucide-react';
 import DeleteConfirmModal from '../common/DeleteConfirmModal';
 
 const ActionsTab = () => {
     const { actions, addAction, updateActionStatus, deleteAction } = useProjectData();
-    const { user, isAdmin } = useAuth();
+    const { user } = useAuth();
+    const { canRaiseActions, canToggleActionStatus, canDeleteItems } = useProjectPermissions();
 
     const [showForm, setShowForm] = useState(false);
     const [newTask, setNewTask] = useState({ task: '', assignedTo: '', dueDate: '' });
@@ -40,7 +42,7 @@ const ActionsTab = () => {
     };
 
     const toggleStatus = (id, currentStatus) => {
-        if (!user) return;
+        if (!canToggleActionStatus) return;
         const newStatus = currentStatus === 'Open' ? 'Closed' : 'Open';
         updateActionStatus(id, newStatus);
     };
@@ -50,7 +52,7 @@ const ActionsTab = () => {
             <div className="flex justify-between items-center mb-6">
                 <h2 className="text-lg font-semibold text-[var(--color-brand-primary)]">Actions & Follow-Ups</h2>
                 <div className="flex gap-2">
-                    {user && (
+                    {canRaiseActions && (
                         <button
                             onClick={() => setShowForm(!showForm)}
                             className="btn btn-primary text-sm gap-1"
@@ -136,7 +138,7 @@ const ActionsTab = () => {
                                 <th className="px-6 py-3 w-48">Assigned To</th>
                                 <th className="px-6 py-3 w-32">Due Date</th>
                                 <th className="px-6 py-3 w-32 text-center">Status</th>
-                                {isAdmin && <th className="px-6 py-3 w-16 text-center"></th>}
+                                {canDeleteItems && <th className="px-6 py-3 w-16 text-center"></th>}
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100 bg-white">
@@ -155,14 +157,14 @@ const ActionsTab = () => {
                                     <td className="px-6 py-4 text-center">
                                         <button
                                             onClick={() => toggleStatus(action.id, action.status)}
-                                            className={`transition-transform active:scale-95 ${user ? 'cursor-pointer hover:opacity-80' : 'cursor-default'}`}
-                                            disabled={!user}
-                                            title={user ? "Click to toggle status" : ""}
+                                            className={`transition-transform active:scale-95 ${canToggleActionStatus ? 'cursor-pointer hover:opacity-80' : 'cursor-default'}`}
+                                            disabled={!canToggleActionStatus}
+                                            title={canToggleActionStatus ? "Click to toggle status" : ""}
                                         >
                                             {getStatusBadge(action.status)}
                                         </button>
                                     </td>
-                                    {isAdmin && (
+                                    {canDeleteItems && (
                                         <td className="px-6 py-4 text-center">
                                             <button
                                                 onClick={() => confirmDelete(action.id)}

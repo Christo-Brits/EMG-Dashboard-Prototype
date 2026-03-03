@@ -2,12 +2,12 @@ import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Info, Target, AlertTriangle, Edit2, X, Check } from 'lucide-react';
 import { useProjectData } from '../../context/ProjectContext';
-import { useAuth } from '../../context/AuthContext';
+import { useProjectPermissions } from '../../hooks/useProjectPermissions';
 
 const OverviewTab = () => {
     const { id } = useParams();
     const { projects, updateProjectDetails } = useProjectData();
-    const { isAdmin } = useAuth();
+    const { canEditProject } = useProjectPermissions();
 
     const project = projects.find(p => p.id === id) || projects[0];
 
@@ -26,7 +26,7 @@ const OverviewTab = () => {
     return (
         <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-300 relative">
 
-            {isAdmin && !isEditing && (
+            {canEditProject && !isEditing && (
                 <div className="absolute -top-2 right-0">
                     <button
                         onClick={() => setIsEditing(true)}

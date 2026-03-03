@@ -3,11 +3,14 @@ import { useParams, NavLink } from 'react-router-dom';
 import { ArrowLeft, User, MessageSquare, CheckCircle2 } from 'lucide-react';
 import { useProjectData } from '../context/ProjectContext';
 import { useAuth } from '../context/AuthContext';
+import { useProjectPermissions } from '../hooks/useProjectPermissions';
+import { hasMinRole } from '../utils/permissions';
 
 const QADetail = () => {
     const { id } = useParams();
     const { qa, addReply } = useProjectData();
     const { user } = useAuth();
+    const { role, canReplyToQuestions } = useProjectPermissions();
 
     const thread = qa.find(q => q.id.toString() === id);
     const [replyText, setReplyText] = useState('');
@@ -15,7 +18,8 @@ const QADetail = () => {
     const handleReply = () => {
         if (!replyText.trim()) return;
 
-        const authorName = user.name + (user.role === 'admin' ? ' (Admin)' : '');
+        const suffix = hasMinRole(role, 'project_manager') ? ` (${role === 'admin' ? 'Admin' : 'PM'})` : '';
+        const authorName = user.name + suffix;
         addReply(id, replyText, authorName);
         setReplyText('');
     };
@@ -99,7 +103,7 @@ const QADetail = () => {
 
                 {/* Reply Box */}
                 <div className="bg-gray-50 p-6 border-t border-gray-200">
-                    {user ? (
+                    {canReplyToQuestions && user ? (
                         <div className="flex gap-4">
                             <div className="w-10 h-10 rounded-full bg-[var(--color-brand-primary)] flex items-center justify-center text-white flex-shrink-0">
                                 <span className="font-bold text-sm">

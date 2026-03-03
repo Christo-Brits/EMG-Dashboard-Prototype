@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { useProjectData } from '../../context/ProjectContext';
-import { useAuth } from '../../context/AuthContext';
+import { useProjectPermissions } from '../../hooks/useProjectPermissions';
 import { User, Calendar, Plus, MoreHorizontal, Trash2, Edit2, X, Check } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 
 const UpdatesTab = () => {
     const { updates, addUpdate, deleteUpdate, updateUpdate } = useProjectData();
-    const { user, isAdmin } = useAuth();
+    const { user } = useAuth();
+    const { canPostUpdates, canEditUpdates, canDeleteItems } = useProjectPermissions();
 
     // Edit/Delete State
     const [openMenuId, setOpenMenuId] = useState(null);
@@ -16,11 +18,14 @@ const UpdatesTab = () => {
     const [newUpdate, setNewUpdate] = useState('');
     const [tag, setTag] = useState('Progress');
 
-    if (newUpdate.trim()) {
-        addUpdate(newUpdate, user?.name || 'Unknown');
-        setNewUpdate('');
-        setShowForm(false);
-    }
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        if (newUpdate.trim()) {
+            addUpdate(newUpdate, user?.name || 'Unknown');
+            setNewUpdate('');
+            setShowForm(false);
+        }
+    };
 
     const startEditing = (update) => {
         setEditingId(update.id);
@@ -44,7 +49,7 @@ const UpdatesTab = () => {
             <div className="flex justify-between items-center mb-6">
                 <h2 className="text-lg font-semibold text-[var(--color-brand-primary)]">Progress Updates</h2>
                 <div className="flex gap-2">
-                    {isAdmin && (
+                    {canPostUpdates && (
                         <button
                             onClick={() => setShowForm(!showForm)}
                             className="btn btn-primary text-xs gap-1"
@@ -138,8 +143,8 @@ const UpdatesTab = () => {
                                         )}
                                     </p>
 
-                                    {/* Admin Controls */}
-                                    {isAdmin && !editingId && (
+                                    {/* Edit/Delete Controls — visible to project_manager+ */}
+                                    {(canEditUpdates || canDeleteItems) && !editingId && (
                                         <div className="absolute top-4 right-4">
                                             <button
                                                 onClick={() => setOpenMenuId(openMenuId === update.id ? null : update.id)}
@@ -150,18 +155,22 @@ const UpdatesTab = () => {
 
                                             {openMenuId === update.id && (
                                                 <div className="absolute right-0 mt-1 w-32 bg-white border border-gray-200 shadow-lg rounded-md overflow-hidden z-20 animate-in fade-in zoom-in-95 duration-200">
-                                                    <button
-                                                        onClick={() => startEditing(update)}
-                                                        className="w-full text-left px-3 py-2 text-xs flex items-center gap-2 hover:bg-gray-50 text-gray-700"
-                                                    >
-                                                        <Edit2 size={12} /> Edit
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleDelete(update.id)}
-                                                        className="w-full text-left px-3 py-2 text-xs flex items-center gap-2 hover:bg-red-50 text-red-600"
-                                                    >
-                                                        <Trash2 size={12} /> Delete
-                                                    </button>
+                                                    {canEditUpdates && (
+                                                        <button
+                                                            onClick={() => startEditing(update)}
+                                                            className="w-full text-left px-3 py-2 text-xs flex items-center gap-2 hover:bg-gray-50 text-gray-700"
+                                                        >
+                                                            <Edit2 size={12} /> Edit
+                                                        </button>
+                                                    )}
+                                                    {canDeleteItems && (
+                                                        <button
+                                                            onClick={() => handleDelete(update.id)}
+                                                            className="w-full text-left px-3 py-2 text-xs flex items-center gap-2 hover:bg-red-50 text-red-600"
+                                                        >
+                                                            <Trash2 size={12} /> Delete
+                                                        </button>
+                                                    )}
                                                 </div>
                                             )}
                                         </div>

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Folder, FileText, Upload, ChevronRight, ChevronDown, Trash2, X } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useProjectData } from '../../context/ProjectContext';
+import { useProjectPermissions } from '../../hooks/useProjectPermissions';
 import DeleteConfirmModal from '../common/DeleteConfirmModal';
 
 const UploadModal = ({ isOpen, onClose, folders, onUpload }) => {
@@ -72,7 +73,8 @@ const UploadModal = ({ isOpen, onClose, folders, onUpload }) => {
 };
 
 const DocumentsTab = () => {
-    const { user, isAdmin } = useAuth();
+    const { user } = useAuth();
+    const { canUploadFiles, canDeleteItems } = useProjectPermissions();
 
     // Use Context Data
     const { documents, addDocument, deleteDocument } = useProjectData();
@@ -144,13 +146,15 @@ const DocumentsTab = () => {
                 <p className="text-sm text-blue-800">
                     Project documentation is stored centrally for version control and transparency.
                 </p>
-                <button
-                    onClick={() => setUploadModalOpen(true)}
-                    disabled={isUploading}
-                    className="btn btn-outline bg-white text-xs whitespace-nowrap gap-2 hover:bg-blue-50 border-blue-200 text-blue-700 disabled:opacity-50"
-                >
-                    {isUploading ? <span className="animate-pulse">Uploading...</span> : <><Upload size={14} /> Upload Document</>}
-                </button>
+                {canUploadFiles && (
+                    <button
+                        onClick={() => setUploadModalOpen(true)}
+                        disabled={isUploading}
+                        className="btn btn-outline bg-white text-xs whitespace-nowrap gap-2 hover:bg-blue-50 border-blue-200 text-blue-700 disabled:opacity-50"
+                    >
+                        {isUploading ? <span className="animate-pulse">Uploading...</span> : <><Upload size={14} /> Upload Document</>}
+                    </button>
+                )}
             </div>
 
             <div className="border border-gray-200 rounded-lg overflow-hidden bg-white shadow-sm">
@@ -193,7 +197,7 @@ const DocumentsTab = () => {
                                                 {file.name}
                                             </span>
 
-                                            {isAdmin && (
+                                            {canDeleteItems && (
                                                 <button
                                                     onClick={(e) => confirmDelete(e, file.id)}
                                                     className="text-gray-300 hover:text-red-500 opacity-0 group-hover/file:opacity-100 transition-all p-1"

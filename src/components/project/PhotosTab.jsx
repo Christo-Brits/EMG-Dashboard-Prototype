@@ -2,11 +2,13 @@ import React, { useState, useRef } from 'react';
 import { Calendar, Tag, Trash2, Upload, Plus, Camera } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useProjectData } from '../../context/ProjectContext';
+import { useProjectPermissions } from '../../hooks/useProjectPermissions';
 import DeleteConfirmModal from '../common/DeleteConfirmModal';
 
 const PhotosTab = () => {
-    const { user, isAdmin } = useAuth();
+    const { user } = useAuth();
     const { photos, addPhoto, deletePhoto } = useProjectData();
+    const { canUploadFiles, canDeleteItems } = useProjectPermissions();
 
     const [showUpload, setShowUpload] = useState(false);
     const [newPhoto, setNewPhoto] = useState({ desc: '', tag: 'Progress', file: null, preview: '' });
@@ -93,7 +95,7 @@ const PhotosTab = () => {
             <div className="flex justify-between items-center mb-6">
                 <h2 className="text-lg font-semibold text-[var(--color-brand-primary)]">Site Photos</h2>
                 <div className="flex gap-2">
-                    {user && (
+                    {canUploadFiles && (
                         <button
                             onClick={() => setShowUpload(true)}
                             className="btn btn-primary text-xs gap-1"
@@ -212,7 +214,7 @@ const PhotosTab = () => {
                                 />
                                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors"></div>
 
-                                {isAdmin && (
+                                {canDeleteItems && (
                                     <button
                                         onClick={(e) => { e.stopPropagation(); confirmDelete(photo.id); }}
                                         className="absolute top-2 right-2 bg-red-600 text-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-700 z-10"
