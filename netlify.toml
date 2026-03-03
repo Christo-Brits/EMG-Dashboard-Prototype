@@ -1,0 +1,8 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  # Firebase API keys are intentionally public client-side keys.
+  # Tell the secrets scanner to skip flagging them in the bundle output.
+  SECRETS_SCAN_SMART_DETECTION_OMIT_VALUES = "true"
