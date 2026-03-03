@@ -162,10 +162,7 @@ export const AuthProvider = ({ children }) => {
     const logout = () => signOut(auth);
 
     const resetPassword = (email) =>
-        sendPasswordResetEmail(auth, email, {
-            url: window.location.origin + '/login',
-            handleCodeInApp: false,
-        });
+        sendPasswordResetEmail(auth, email);
 
     /** Re-fetch the user doc from Firestore and update context state. */
     const refreshUser = useCallback(async () => {

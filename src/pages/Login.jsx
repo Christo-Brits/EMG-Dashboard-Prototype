@@ -36,12 +36,35 @@ const Login = () => {
                 navigate(redirectTo);
             }
         } catch (err) {
-            console.error("Auth Error:", err);
-            let msg = "Failed to authenticate.";
-            if (err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password') msg = "Invalid email or password.";
-            if (err.code === 'auth/email-already-in-use') msg = "Email already in use.";
-            if (err.code === 'auth/weak-password') msg = "Password is too weak (min 6 chars).";
-            if (err.code === 'auth/user-not-found') msg = "Account not found. Please Sign Up first.";
+            console.error("Auth Error:", err.code, err.message);
+            let msg = "Something went wrong. Please try again.";
+            switch (err.code) {
+                case 'auth/invalid-credential':
+                case 'auth/wrong-password':
+                    msg = "Invalid email or password."; break;
+                case 'auth/email-already-in-use':
+                    msg = "Email already in use."; break;
+                case 'auth/weak-password':
+                    msg = "Password is too weak (min 6 chars)."; break;
+                case 'auth/user-not-found':
+                    msg = isResetMode
+                        ? "No account found with that email."
+                        : "Account not found. Please Sign Up first.";
+                    break;
+                case 'auth/too-many-requests':
+                    msg = "Too many attempts. Please wait a few minutes and try again."; break;
+                case 'auth/invalid-email':
+                    msg = "Please enter a valid email address."; break;
+                case 'auth/unauthorized-continue-uri':
+                case 'auth/missing-continue-uri':
+                    msg = "Reset configuration error. Please contact support."; break;
+                case 'auth/network-request-failed':
+                    msg = "Network error. Please check your connection."; break;
+                default:
+                    msg = isResetMode
+                        ? "Failed to send reset email. Please try again."
+                        : "Failed to authenticate. Please try again.";
+            }
             setError(msg);
         }
         setLoading(false);
