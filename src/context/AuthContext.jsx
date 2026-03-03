@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { auth, db } from '../config/firebase';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, collection, query, where, getDocs, updateDoc, arrayUnion } from 'firebase/firestore';
 import {
     signInWithEmailAndPassword,
     createUserWithEmailAndPassword,
@@ -92,6 +92,35 @@ export const AuthProvider = ({ children }) => {
                                 : [],
                             createdAt: new Date(),
                         };
+
+                        // Check for pending invites for this email
+                        try {
+                            const invQ = query(
+                                collection(db, 'pending_invites'),
+                                where('email', '==', currentUser.email.toLowerCase()),
+                                where('status', '==', 'pending'),
+                            );
+                            const invSnap = await getDocs(invQ);
+                            for (const invDoc of invSnap.docs) {
+                                const inv = invDoc.data();
+                                // Merge invited projects into the new user doc
+                                if (Array.isArray(inv.projects)) {
+                                    inv.projects.forEach((pid) => {
+                                        if (!userData.allowedProjects.includes(pid)) {
+                                            userData.allowedProjects.push(pid);
+                                        }
+                                    });
+                                }
+                                if (inv.projectRoles) {
+                                    userData.projectRoles = { ...userData.projectRoles, ...inv.projectRoles };
+                                }
+                                // Mark invite as accepted
+                                await updateDoc(doc(db, 'pending_invites', invDoc.id), { status: 'accepted' });
+                            }
+                        } catch (invErr) {
+                            console.error('Error checking pending invites:', invErr);
+                        }
+
                         await setDoc(userRef, userData);
                     }
                 } catch (error) {
@@ -132,7 +161,29 @@ export const AuthProvider = ({ children }) => {
 
     const logout = () => signOut(auth);
 
-    const resetPassword = (email) => sendPasswordResetEmail(auth, email);
+    const resetPassword = (email) =>
+        sendPasswordResetEmail(auth, email, {
+            url: window.location.origin + '/login',
+            handleCodeInApp: false,
+        });
+
+    /** Re-fetch the user doc from Firestore and update context state. */
+    const refreshUser = useCallback(async () => {
+        const currentUser = auth.currentUser;
+        if (!currentUser) return;
+        try {
+            const snap = await getDoc(doc(db, 'users', currentUser.uid));
+            if (snap.exists()) {
+                let userData = normaliseUserData(snap.data());
+                if (currentUser.email.toLowerCase() === 'christo@emgroup.co.nz') {
+                    userData.globalRole = 'admin';
+                }
+                setUser({ ...currentUser, ...userData });
+            }
+        } catch (err) {
+            console.error('Error refreshing user data:', err);
+        }
+    }, []);
 
     // --- Per-project role resolver ---
 
@@ -160,6 +211,7 @@ export const AuthProvider = ({ children }) => {
                 signup,
                 logout,
                 resetPassword,
+                refreshUser,
                 isAdmin,
                 getProjectRole,
             }}

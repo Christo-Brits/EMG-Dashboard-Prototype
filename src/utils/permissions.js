@@ -35,6 +35,7 @@ export const canUploadFiles = (role) => hasMinRole(role, 'stakeholder');
 export const canAskQuestions = (role) => hasMinRole(role, 'stakeholder');
 export const canReplyToQuestions = (role) => hasMinRole(role, 'stakeholder');
 export const canEditProject = (role) => hasMinRole(role, 'project_manager');
+export const canManageUsers = (role) => hasMinRole(role, 'admin');
 
 /** Human-readable label for a role string. */
 export function roleLabel(role) {

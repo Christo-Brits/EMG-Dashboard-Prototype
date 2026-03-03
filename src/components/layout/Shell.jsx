@@ -2,11 +2,12 @@ import React from 'react';
 import { Outlet, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { roleLabel } from '../../utils/permissions';
-import { User, LogOut, LogIn } from 'lucide-react';
+import { User, LogOut, LogIn, Settings, Users } from 'lucide-react';
 
 const Shell = () => {
     const { user, isAdmin, logout } = useAuth();
     const displayRole = isAdmin ? 'Admin' : (user?.globalRole === 'user' ? null : roleLabel(user?.globalRole));
+    const displayName = user?.name || user?.email?.split('@')[0] || 'User';
 
     return (
         <div className="min-h-screen flex flex-col">
@@ -18,15 +19,28 @@ const Shell = () => {
                     <div className="flex items-center gap-4">
                         {displayRole && <span className="bg-slate-800 text-white text-xs font-medium px-2.5 py-1 rounded">{displayRole}</span>}
 
+                        {isAdmin && (
+                            <Link
+                                to="/admin/users"
+                                className="flex items-center gap-1.5 text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors"
+                                title="Manage Users"
+                            >
+                                <Users size={16} />
+                                <span className="hidden sm:inline">Manage Users</span>
+                            </Link>
+                        )}
+
                         {user ? (
                             <div className="flex items-center gap-3 pl-4 border-l border-gray-200">
-                                <div className="text-right hidden sm:block">
-                                    <div className="text-sm font-medium text-gray-900">{user.name}</div>
-                                    <div className="text-xs text-gray-500">{user.email}</div>
-                                </div>
-                                <div className="h-9 w-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 border border-slate-200">
-                                    <User size={18} />
-                                </div>
+                                <Link to="/settings" className="flex items-center gap-2 hover:opacity-80 transition-opacity" title="Account Settings">
+                                    <div className="text-right hidden sm:block">
+                                        <div className="text-sm font-medium text-gray-900">{displayName}</div>
+                                        <div className="text-xs text-gray-500">{user.email}</div>
+                                    </div>
+                                    <div className="h-9 w-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 border border-slate-200">
+                                        <User size={18} />
+                                    </div>
+                                </Link>
                                 <button
                                     onClick={logout}
                                     className="p-2 text-gray-400 hover:text-red-500 transition-colors"
@@ -53,7 +67,7 @@ const Shell = () => {
                 <Outlet />
             </main>
             <footer className="h-12 border-t border-[var(--color-border)] bg-white flex items-center justify-center text-sm text-[var(--color-text-secondary)]">
-                © 2025 EMG Project Management. All rights reserved.
+                &copy; {new Date().getFullYear()} EMG Project Management. All rights reserved.
             </footer>
         </div>
     );

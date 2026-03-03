@@ -1,35 +1,39 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ArrowRight, ChevronLeft } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { ArrowRight, ChevronLeft, CheckCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 const Login = () => {
     const navigate = useNavigate();
+    const location = useLocation();
     const { login, signup, resetPassword } = useAuth();
     const [isLoginMode, setIsLoginMode] = useState(true);
     const [isResetMode, setIsResetMode] = useState(false);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
+    const [successMsg, setSuccessMsg] = useState('');
     const [loading, setLoading] = useState(false);
+
+    const redirectTo = location.state?.from?.pathname || '/';
 
     const handleAuth = async (e) => {
         e.preventDefault();
         setError('');
+        setSuccessMsg('');
         setLoading(true);
         try {
             if (isResetMode) {
                 await resetPassword(email);
-                setError('');
-                alert('Password reset email sent! Check your inbox.');
+                setSuccessMsg('Password reset email sent! Check your inbox.');
                 setIsResetMode(false);
                 setIsLoginMode(true);
             } else if (isLoginMode) {
                 await login(email, password);
-                navigate('/project/south-mall');
+                navigate(redirectTo);
             } else {
                 await signup(email, password);
-                navigate('/project/south-mall');
+                navigate(redirectTo);
             }
         } catch (err) {
             console.error("Auth Error:", err);
@@ -56,11 +60,17 @@ const Login = () => {
 
                 <div className="mb-6 text-center sm:text-left">
                     <img src={`${import.meta.env.BASE_URL}logo.png`} alt="EMG Logo" className="h-12 w-auto mb-6 mx-auto sm:mx-0" />
-                    <h1 className="text-2xl font-bold text-[var(--color-brand-primary)]">South Mall New World</h1>
+                    <h1 className="text-2xl font-bold text-[var(--color-brand-primary)]">EMG Project Portal</h1>
                     <p className="text-gray-500 mt-1">
                         {isResetMode ? 'Reset your password.' : (isLoginMode ? 'Welcome back. Sign in to continue.' : 'Create your account to access the project portal.')}
                     </p>
                 </div>
+
+                {successMsg && (
+                    <div className="mb-4 bg-green-50 text-green-700 text-sm p-3 rounded-lg border border-green-100 flex items-center gap-2">
+                        <CheckCircle size={16} /> {successMsg}
+                    </div>
+                )}
 
                 {error && (
                     <div className="mb-4 bg-red-50 text-red-600 text-sm p-3 rounded-lg border border-red-100 flex items-center justify-center">
@@ -90,7 +100,7 @@ const Login = () => {
                                 {isLoginMode && (
                                     <button
                                         type="button"
-                                        onClick={() => setIsResetMode(true)}
+                                        onClick={() => { setIsResetMode(true); setError(''); setSuccessMsg(''); }}
                                         className="text-xs text-blue-600 hover:text-blue-800"
                                     >
                                         Forgot Password?
@@ -123,6 +133,7 @@ const Login = () => {
                 <div className="mt-6 text-center">
                     <button
                         onClick={() => {
+                            setError(''); setSuccessMsg('');
                             if (isResetMode) setIsResetMode(false);
                             else setIsLoginMode(!isLoginMode);
                         }}
