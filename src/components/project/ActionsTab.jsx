@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useProjectData } from '../../context/ProjectContext';
 import { useAuth } from '../../context/AuthContext';
-import { CheckCircle2, Circle, Plus, X, Trash2, Download } from 'lucide-react';
+import { CheckCircle2, Circle, Plus, X, Trash2, Search, Filter } from 'lucide-react';
 import DeleteConfirmModal from '../common/DeleteConfirmModal';
 
 const ActionsTab = () => {
@@ -10,6 +10,11 @@ const ActionsTab = () => {
 
     const [showForm, setShowForm] = useState(false);
     const [newTask, setNewTask] = useState({ task: '', assignedTo: '', dueDate: '' });
+
+    // Filter/search state
+    const [searchQuery, setSearchQuery] = useState('');
+    const [statusFilter, setStatusFilter] = useState('all');
+    const [assigneeFilter, setAssigneeFilter] = useState('all');
 
     // Delete State
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -45,10 +50,42 @@ const ActionsTab = () => {
         updateActionStatus(id, newStatus);
     };
 
+    // Derive unique assignees for filter
+    const uniqueAssignees = useMemo(() => {
+        const set = new Set(actions.map(a => a.assignedTo).filter(Boolean));
+        return [...set].sort();
+    }, [actions]);
+
+    // Filtered actions
+    const filteredActions = useMemo(() => {
+        return actions.filter(action => {
+            if (statusFilter !== 'all' && action.status !== statusFilter) return false;
+            if (assigneeFilter !== 'all' && action.assignedTo !== assigneeFilter) return false;
+            if (searchQuery.trim()) {
+                const q = searchQuery.toLowerCase();
+                return (action.task?.toLowerCase().includes(q) || action.assignedTo?.toLowerCase().includes(q));
+            }
+            return true;
+        });
+    }, [actions, statusFilter, assigneeFilter, searchQuery]);
+
+    const openCount = actions.filter(a => a.status === 'Open').length;
+    const closedCount = actions.filter(a => a.status === 'Closed').length;
+    const hasActiveFilters = statusFilter !== 'all' || assigneeFilter !== 'all' || searchQuery.trim();
+
     return (
         <div className="max-w-5xl mx-auto">
-            <div className="flex justify-between items-center mb-6">
-                <h2 className="text-lg font-semibold text-[var(--color-brand-primary)]">Actions & Follow-Ups</h2>
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+                <div>
+                    <h2 className="text-lg font-semibold text-[var(--color-brand-primary)]">Actions & Follow-Ups</h2>
+                    {actions.length > 0 && (
+                        <div className="flex gap-3 mt-1">
+                            <span className="text-xs text-gray-500">{openCount} open</span>
+                            <span className="text-xs text-gray-400">&bull;</span>
+                            <span className="text-xs text-gray-500">{closedCount} closed</span>
+                        </div>
+                    )}
+                </div>
                 <div className="flex gap-2">
                     {isAdmin && (
                         <button
@@ -117,6 +154,49 @@ const ActionsTab = () => {
                 </div>
             )}
 
+            {/* Filter Bar */}
+            {actions.length > 0 && (
+                <div className="flex flex-col sm:flex-row gap-3 mb-4">
+                    <div className="relative flex-1">
+                        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                        <input
+                            type="text"
+                            className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400"
+                            placeholder="Search actions..."
+                            value={searchQuery}
+                            onChange={e => setSearchQuery(e.target.value)}
+                        />
+                    </div>
+                    <select
+                        className="px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                        value={statusFilter}
+                        onChange={e => setStatusFilter(e.target.value)}
+                    >
+                        <option value="all">All Status</option>
+                        <option value="Open">Open</option>
+                        <option value="Closed">Closed</option>
+                    </select>
+                    <select
+                        className="px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                        value={assigneeFilter}
+                        onChange={e => setAssigneeFilter(e.target.value)}
+                    >
+                        <option value="all">All Assignees</option>
+                        {uniqueAssignees.map(a => (
+                            <option key={a} value={a}>{a}</option>
+                        ))}
+                    </select>
+                    {hasActiveFilters && (
+                        <button
+                            onClick={() => { setSearchQuery(''); setStatusFilter('all'); setAssigneeFilter('all'); }}
+                            className="text-xs text-gray-500 hover:text-gray-700 flex items-center gap-1 px-2"
+                        >
+                            <X size={14} /> Clear
+                        </button>
+                    )}
+                </div>
+            )}
+
             {actions.length === 0 ? (
                 <div className="text-center py-16 text-gray-400 border border-gray-200 rounded-lg">
                     <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
@@ -125,33 +205,39 @@ const ActionsTab = () => {
                     <p className="text-sm font-medium text-gray-500 mb-1">No actions have been raised</p>
                     <p className="text-xs text-gray-400">Action items and follow-ups will appear here</p>
                 </div>
+            ) : filteredActions.length === 0 ? (
+                <div className="text-center py-12 text-gray-400 border border-gray-200 rounded-lg">
+                    <Filter size={24} className="text-gray-300 mx-auto mb-3" />
+                    <p className="text-sm font-medium text-gray-500 mb-1">No matching actions found</p>
+                    <p className="text-xs text-gray-400">Try adjusting your filters or search query</p>
+                </div>
             ) : (
-                <div className="overflow-hidden border border-gray-200 rounded-lg shadow-sm">
-                    <table className="w-full text-sm text-left">
+                <div className="overflow-x-auto border border-gray-200 rounded-lg shadow-sm">
+                    <table className="w-full text-sm text-left min-w-[640px]">
                         <thead className="bg-gray-50 text-gray-500 font-medium border-b border-gray-200">
                             <tr>
-                                <th className="px-6 py-3 w-16">#</th>
-                                <th className="px-6 py-3">Task Description</th>
-                                <th className="px-6 py-3 w-48">Assigned To</th>
-                                <th className="px-6 py-3 w-32">Due Date</th>
-                                <th className="px-6 py-3 w-32 text-center">Status</th>
-                                {isAdmin && <th className="px-6 py-3 w-16 text-center"></th>}
+                                <th className="px-4 sm:px-6 py-3 w-16">#</th>
+                                <th className="px-4 sm:px-6 py-3">Task Description</th>
+                                <th className="px-4 sm:px-6 py-3 w-48">Assigned To</th>
+                                <th className="px-4 sm:px-6 py-3 w-32">Due Date</th>
+                                <th className="px-4 sm:px-6 py-3 w-32 text-center">Status</th>
+                                {isAdmin && <th className="px-4 sm:px-6 py-3 w-16 text-center"></th>}
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100 bg-white">
-                            {actions.map((action) => (
+                            {filteredActions.map((action) => (
                                 <tr key={action.id} className="hover:bg-gray-50 transition-colors group">
-                                    <td className="px-6 py-4 text-gray-400">{action.id}</td>
-                                    <td className="px-6 py-4 font-medium text-[var(--color-brand-primary)]">
+                                    <td className="px-4 sm:px-6 py-4 text-gray-400">{action.id}</td>
+                                    <td className="px-4 sm:px-6 py-4 font-medium text-[var(--color-brand-primary)]">
                                         {action.task}
                                     </td>
-                                    <td className="px-6 py-4">
+                                    <td className="px-4 sm:px-6 py-4">
                                         <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-700">
                                             {action.assignedTo}
                                         </span>
                                     </td>
-                                    <td className="px-6 py-4 text-gray-500">{action.dueDate}</td>
-                                    <td className="px-6 py-4 text-center">
+                                    <td className="px-4 sm:px-6 py-4 text-gray-500">{action.dueDate}</td>
+                                    <td className="px-4 sm:px-6 py-4 text-center">
                                         <button
                                             onClick={() => toggleStatus(action.id, action.status)}
                                             className={`transition-transform active:scale-95 ${isAdmin ? 'cursor-pointer hover:opacity-80' : 'cursor-default'}`}
@@ -162,7 +248,7 @@ const ActionsTab = () => {
                                         </button>
                                     </td>
                                     {isAdmin && (
-                                        <td className="px-6 py-4 text-center">
+                                        <td className="px-4 sm:px-6 py-4 text-center">
                                             <button
                                                 onClick={() => confirmDelete(action.id)}
                                                 className="text-red-300 hover:text-red-600 transition-colors"

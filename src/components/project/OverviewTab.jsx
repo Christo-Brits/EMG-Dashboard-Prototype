@@ -1,15 +1,21 @@
 import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { Info, Target, AlertTriangle, Edit2, X, Check } from 'lucide-react';
+import { Info, Target, AlertTriangle, Edit2, X, Check, CheckCircle2, Circle, HelpCircle, Camera, FileText } from 'lucide-react';
 import { useProjectData } from '../../context/ProjectContext';
 import { useAuth } from '../../context/AuthContext';
 
 const OverviewTab = () => {
     const { projectId } = useParams();
-    const { projects, updateProjectDetails } = useProjectData();
+    const { projects, updateProjectDetails, updates, actions, qa, photos, documents } = useProjectData();
     const { isAdmin } = useAuth();
 
     const project = projects.find(p => p.id === projectId) || projects[0];
+
+    const openActions = actions.filter(a => a.status === 'Open').length;
+    const closedActions = actions.filter(a => a.status === 'Closed').length;
+    const openQuestions = qa.filter(q => q.status === 'Open').length;
+    const answeredQuestions = qa.filter(q => q.status === 'Answered').length;
+    const totalDocuments = documents.reduce((sum, folder) => sum + (folder.items?.length || 0), 0);
 
     const [isEditing, setIsEditing] = useState(false);
     const [formData, setFormData] = useState({
@@ -83,6 +89,67 @@ const OverviewTab = () => {
                 </div>
             )}
 
+            {/* Project Health KPIs */}
+            <section>
+                <h3 className="text-sm font-medium text-gray-500 mb-3 uppercase tracking-wide">Project Snapshot</h3>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div className="bg-white border border-gray-200 rounded-lg p-4 flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-full bg-amber-50 flex items-center justify-center flex-shrink-0">
+                            <Circle size={16} className="text-amber-600" />
+                        </div>
+                        <div>
+                            <div className="text-xl font-bold text-[var(--color-brand-primary)]">{openActions}</div>
+                            <div className="text-xs text-gray-500">Open Actions</div>
+                        </div>
+                    </div>
+                    <div className="bg-white border border-gray-200 rounded-lg p-4 flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-full bg-green-50 flex items-center justify-center flex-shrink-0">
+                            <CheckCircle2 size={16} className="text-green-600" />
+                        </div>
+                        <div>
+                            <div className="text-xl font-bold text-[var(--color-brand-primary)]">{closedActions}</div>
+                            <div className="text-xs text-gray-500">Closed</div>
+                        </div>
+                    </div>
+                    <div className="bg-white border border-gray-200 rounded-lg p-4 flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-full bg-blue-50 flex items-center justify-center flex-shrink-0">
+                            <HelpCircle size={16} className="text-blue-600" />
+                        </div>
+                        <div>
+                            <div className="text-xl font-bold text-[var(--color-brand-primary)]">{openQuestions}</div>
+                            <div className="text-xs text-gray-500">Open Q&A</div>
+                        </div>
+                    </div>
+                    <div className="bg-white border border-gray-200 rounded-lg p-4 flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-full bg-slate-50 flex items-center justify-center flex-shrink-0">
+                            <FileText size={16} className="text-slate-600" />
+                        </div>
+                        <div>
+                            <div className="text-xl font-bold text-[var(--color-brand-primary)]">{totalDocuments}</div>
+                            <div className="text-xs text-gray-500">Documents</div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Action completion bar */}
+                {(openActions + closedActions) > 0 && (
+                    <div className="mt-3 bg-white border border-gray-200 rounded-lg p-4">
+                        <div className="flex items-center justify-between mb-2">
+                            <span className="text-xs font-medium text-gray-600">Action Completion</span>
+                            <span className="text-xs font-bold text-gray-700">
+                                {closedActions} / {openActions + closedActions} completed
+                            </span>
+                        </div>
+                        <div className="w-full bg-gray-100 rounded-full h-2">
+                            <div
+                                className="bg-green-500 h-2 rounded-full transition-all duration-500"
+                                style={{ width: `${((closedActions / (openActions + closedActions)) * 100).toFixed(0)}%` }}
+                            ></div>
+                        </div>
+                    </div>
+                )}
+            </section>
+
             {/* Summary Section */}
             <section>
                 <h3 className="text-lg font-semibold text-[var(--color-brand-primary)] mb-4 flex items-center gap-2">
@@ -112,6 +179,24 @@ const OverviewTab = () => {
                     <p className="text-gray-600 text-sm">{project.coordination}</p>
                 </div>
             </div>
+
+            {/* Recent Activity */}
+            {updates.length > 0 && (
+                <section>
+                    <h3 className="text-sm font-medium text-gray-500 mb-3 uppercase tracking-wide">Latest Updates</h3>
+                    <div className="space-y-2">
+                        {updates.slice(0, 3).map((update) => (
+                            <div key={update.id} className="bg-white border border-gray-100 rounded-lg p-3 flex items-start gap-3">
+                                <div className="w-2 h-2 rounded-full bg-blue-400 mt-2 flex-shrink-0"></div>
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-sm text-gray-700 line-clamp-1">{update.content}</p>
+                                    <p className="text-xs text-gray-400 mt-0.5">{update.author} &bull; {update.date}</p>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </section>
+            )}
 
             {/* Map / Location Placeholder */}
             <section>
