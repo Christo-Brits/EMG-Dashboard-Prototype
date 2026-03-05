@@ -2,7 +2,7 @@ import React from 'react';
 import { Outlet, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { roleLabel } from '../../utils/permissions';
-import { User, LogOut, LogIn, Settings, Users } from 'lucide-react';
+import { User, LogOut, LogIn, Settings, Users, FolderOpen, PlusCircle } from 'lucide-react';
 
 const Shell = () => {
     const { user, isAdmin, logout } = useAuth();
@@ -13,21 +13,40 @@ const Shell = () => {
         <div className="min-h-screen flex flex-col">
             <header className="bg-white border-b border-[var(--color-border)] h-16 flex items-center px-6 sticky top-0 z-50">
                 <div className="container flex items-center justify-between h-full">
-                    <Link to="/dashboard" className="flex items-center gap-2">
-                        <img src={`${import.meta.env.BASE_URL}logo.png`} alt="EMG Logo" className="h-8 w-auto object-contain" />
-                    </Link>
+                    <div className="flex items-center gap-4">
+                        <Link to="/projects" className="flex items-center gap-2">
+                            <img src={`${import.meta.env.BASE_URL}logo.png`} alt="EMG Logo" className="h-8 w-auto object-contain" />
+                        </Link>
+                        <Link
+                            to="/projects"
+                            className="flex items-center gap-1.5 text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors"
+                        >
+                            <FolderOpen size={16} />
+                            <span className="hidden sm:inline">Projects</span>
+                        </Link>
+                    </div>
                     <div className="flex items-center gap-4">
                         {displayRole && <span className="bg-slate-800 text-white text-xs font-medium px-2.5 py-1 rounded">{displayRole}</span>}
 
                         {isAdmin && (
-                            <Link
-                                to="/admin/users"
-                                className="flex items-center gap-1.5 text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors"
-                                title="Manage Users"
-                            >
-                                <Users size={16} />
-                                <span className="hidden sm:inline">Manage Users</span>
-                            </Link>
+                            <>
+                                <Link
+                                    to="/admin/projects/new"
+                                    className="flex items-center gap-1.5 text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors"
+                                    title="Create Project"
+                                >
+                                    <PlusCircle size={16} />
+                                    <span className="hidden sm:inline">New Project</span>
+                                </Link>
+                                <Link
+                                    to="/admin/users"
+                                    className="flex items-center gap-1.5 text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors"
+                                    title="Manage Users"
+                                >
+                                    <Users size={16} />
+                                    <span className="hidden sm:inline">Manage Users</span>
+                                </Link>
+                            </>
                         )}
 
                         {user ? (

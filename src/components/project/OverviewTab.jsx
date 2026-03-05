@@ -9,14 +9,33 @@ const OverviewTab = () => {
     const { projects, updateProjectDetails } = useProjectData();
     const { canEditProject } = useProjectPermissions();
 
-    const project = projects.find(p => p.id === id) || projects[0];
+    const project = projects.find(p => p.id === id);
 
     const [isEditing, setIsEditing] = useState(false);
     const [formData, setFormData] = useState({
-        summary: project.summary,
-        focus: project.focus,
-        coordination: project.coordination
+        summary: project?.summary || '',
+        focus: project?.focus || '',
+        coordination: project?.coordination || ''
     });
+
+    // Keep form data in sync when project data loads/changes
+    React.useEffect(() => {
+        if (project) {
+            setFormData({
+                summary: project.summary || '',
+                focus: project.focus || '',
+                coordination: project.coordination || ''
+            });
+        }
+    }, [project?.summary, project?.focus, project?.coordination]);
+
+    if (!project) {
+        return (
+            <div className="text-center py-16 text-gray-400">
+                <p className="text-sm">Project details are loading or not available.</p>
+            </div>
+        );
+    }
 
     const handleSave = () => {
         updateProjectDetails(project.id, formData);

@@ -1,12 +1,13 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Building2, Clock } from 'lucide-react';
-import { PROJECTS } from '../data/mockData';
+import { ArrowRight, Building2, Clock, Loader2 } from 'lucide-react';
+import { useProjectData } from '../context/ProjectContext';
 
 const GlobalDashboard = () => {
     const navigate = useNavigate();
-    const mainProject = PROJECTS[0];
-    const otherProjects = PROJECTS.slice(1);
+    const { projects, projectsLoading } = useProjectData();
+    const mainProject = projects[0];
+    const otherProjects = projects.slice(1);
 
     const getStatusColor = (status) => {
         switch (status) {
@@ -17,6 +18,25 @@ const GlobalDashboard = () => {
             default: return 'badge-neutral';
         }
     };
+
+    if (projectsLoading) {
+        return (
+            <div className="container max-w-5xl flex items-center justify-center py-20">
+                <Loader2 size={32} className="animate-spin text-gray-400" />
+            </div>
+        );
+    }
+
+    if (!mainProject) {
+        return (
+            <div className="container max-w-5xl">
+                <div className="mb-8">
+                    <h1 className="text-2xl font-bold text-[var(--color-brand-primary)]">Project Dashboard</h1>
+                    <p className="text-[var(--color-text-secondary)]">No projects found. Contact an administrator for access.</p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="container max-w-5xl">
@@ -38,15 +58,17 @@ const GlobalDashboard = () => {
                                 <span className={`badge ${getStatusColor(mainProject.status)} mb-2`}>{mainProject.status}</span>
                                 <h3 className="text-xl font-bold text-[var(--color-brand-primary)] mb-1">{mainProject.name}</h3>
                                 <div className="flex items-center text-sm text-[var(--color-text-secondary)] gap-4">
-                                    <span className="flex items-center gap-1"><Building2 size={14} /> {mainProject.location}</span>
-                                    <span className="flex items-center gap-1"><Clock size={14} /> Last updated {mainProject.lastUpdated}</span>
+                                    {mainProject.location && <span className="flex items-center gap-1"><Building2 size={14} /> {mainProject.location}</span>}
+                                    {mainProject.lastUpdated && <span className="flex items-center gap-1"><Clock size={14} /> Last updated {mainProject.lastUpdated}</span>}
                                 </div>
                             </div>
                         </div>
 
-                        <p className="text-gray-600 mb-6 leading-relaxed">
-                            {mainProject.summary}
-                        </p>
+                        {mainProject.summary && (
+                            <p className="text-gray-600 mb-6 leading-relaxed">
+                                {mainProject.summary}
+                            </p>
+                        )}
 
                         <div className="flex justify-end">
                             <button className="btn btn-outline text-sm gap-2">
@@ -58,30 +80,33 @@ const GlobalDashboard = () => {
                 </div>
 
                 {/* Sidebar - Other Projects */}
-                <div className="space-y-6">
-                    <h2 className="text-lg text-[var(--color-text-primary)] font-semibold border-b border-gray-200 pb-2">
-                        Other Active Projects
-                    </h2>
+                {otherProjects.length > 0 && (
+                    <div className="space-y-6">
+                        <h2 className="text-lg text-[var(--color-text-primary)] font-semibold border-b border-gray-200 pb-2">
+                            Other Active Projects
+                        </h2>
 
-                    <div className="card bg-gray-50 border-gray-100">
-                        <div className="space-y-4">
-                            {otherProjects.map((project) => (
-                                <div key={project.id} className="pb-4 border-b border-gray-100 last:border-0 last:pb-0">
-                                    <div className="flex justify-between items-start mb-1">
-                                        <h4 className="font-medium text-[var(--color-brand-secondary)]">{project.name}</h4>
+                        <div className="card bg-gray-50 border-gray-100">
+                            <div className="space-y-4">
+                                {otherProjects.map((project) => (
+                                    <div
+                                        key={project.id}
+                                        className="pb-4 border-b border-gray-100 last:border-0 last:pb-0 cursor-pointer hover:opacity-80"
+                                        onClick={() => navigate(`/project/${project.id}`)}
+                                    >
+                                        <div className="flex justify-between items-start mb-1">
+                                            <h4 className="font-medium text-[var(--color-brand-secondary)]">{project.name}</h4>
+                                        </div>
+                                        <div className="flex items-center justify-between text-xs">
+                                            <span className={`badge ${getStatusColor(project.status)} scale-90 origin-left`}>{project.status}</span>
+                                            {project.lastUpdated && <span className="text-gray-400">Upd: {project.lastUpdated}</span>}
+                                        </div>
                                     </div>
-                                    <div className="flex items-center justify-between text-xs">
-                                        <span className={`badge ${getStatusColor(project.status)} scale-90 origin-left`}>{project.status}</span>
-                                        <span className="text-gray-400">Upd: {project.lastUpdated}</span>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                        <div className="mt-6 pt-4 border-t border-gray-200 text-xs text-gray-500 text-center">
-                            Detailed views for these projects are not enabled in this preview.
+                                ))}
+                            </div>
                         </div>
                     </div>
-                </div>
+                )}
             </div>
         </div>
     );

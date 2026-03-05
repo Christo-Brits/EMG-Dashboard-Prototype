@@ -157,6 +157,15 @@ const DocumentsTab = () => {
                 )}
             </div>
 
+            {documents.length === 0 || documents.every(f => f.items.length === 0) ? (
+                <div className="text-center py-16 text-gray-400">
+                    <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
+                        <FileText size={28} className="text-gray-300" />
+                    </div>
+                    <p className="text-sm font-medium text-gray-500 mb-1">No documents uploaded yet</p>
+                    <p className="text-xs text-gray-400">Documents will appear here as they are added to the project</p>
+                </div>
+            ) : (
             <div className="border border-gray-200 rounded-lg overflow-hidden bg-white shadow-sm">
                 <div className="grid grid-cols-12 bg-gray-50 border-b border-gray-200 text-xs font-semibold text-gray-500 uppercase tracking-wider py-3 px-4">
                     <div className="col-span-6">File Name</div>
@@ -217,6 +226,7 @@ const DocumentsTab = () => {
                     })}
                 </div>
             </div>
+            )}
         </div>
     );
 };

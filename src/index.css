@@ -138,5 +138,39 @@ button {
 }
 .badge-success { background: #dcfce7; color: #166534; }
 .badge-warning { background: #fef3c7; color: #92400e; }
+.badge-info { background: #dbeafe; color: #1e40af; }
 .badge-neutral { background: #f1f5f9; color: #475569; }
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes slideInFromTop {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes zoomIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.animate-in { animation-duration: 300ms; animation-fill-mode: both; }
+.fade-in { animation-name: fadeIn; }
+.slide-in-from-top-2 { animation-name: slideInFromTop; }
+.zoom-in-95 { animation-name: zoomIn; }
+.duration-200 { animation-duration: 200ms; }
+.duration-500 { animation-duration: 500ms; }
+
+/* Scrollbar hide for horizontal tab navigation */
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Grid system */
+.grid { display: grid; }
+.grid-cols-1 { grid-template-columns: repeat(1, minmax(0, 1fr)); }
+@media (min-width: 768px) {
+  .md\:grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .md\:col-span-2 { grid-column: span 2 / span 2; }
+}
 

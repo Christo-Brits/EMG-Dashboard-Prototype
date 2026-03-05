@@ -75,21 +75,12 @@ export const AuthProvider = ({ children }) => {
                         userData = normaliseUserData(userSnap.data());
                     } else {
                         // Create new user doc for first-time sign-in
-                        const isMasterAdmin =
-                            currentUser.email.toLowerCase() === 'christo@emgroup.co.nz';
-
                         userData = {
                             email: currentUser.email,
-                            name: isMasterAdmin
-                                ? 'Christo (Admin)'
-                                : currentUser.email.split('@')[0],
-                            globalRole: isMasterAdmin ? 'admin' : 'user',
-                            projectRoles: isMasterAdmin
-                                ? { 'south-mall': 'admin', 'north-end': 'admin' }
-                                : {},
-                            allowedProjects: isMasterAdmin
-                                ? ['south-mall', 'north-end']
-                                : [],
+                            name: currentUser.email.split('@')[0],
+                            globalRole: 'user',
+                            projectRoles: {},
+                            allowedProjects: [],
                             createdAt: new Date(),
                         };
 
@@ -132,12 +123,6 @@ export const AuthProvider = ({ children }) => {
                     };
                 }
 
-                // Master-email override — ensures platform admin even if
-                // Firestore doc was somehow changed
-                if (currentUser.email.toLowerCase() === 'christo@emgroup.co.nz') {
-                    userData.globalRole = 'admin';
-                }
-
                 setUser({
                     ...currentUser,
                     ...userData,
@@ -171,10 +156,7 @@ export const AuthProvider = ({ children }) => {
         try {
             const snap = await getDoc(doc(db, 'users', currentUser.uid));
             if (snap.exists()) {
-                let userData = normaliseUserData(snap.data());
-                if (currentUser.email.toLowerCase() === 'christo@emgroup.co.nz') {
-                    userData.globalRole = 'admin';
-                }
+                const userData = normaliseUserData(snap.data());
                 setUser({ ...currentUser, ...userData });
             }
         } catch (err) {

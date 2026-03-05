@@ -1,110 +1,144 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ChevronRight, Lock, MapPin, Search, AlertCircle, X } from 'lucide-react';
-import { PROJECTS } from '../data/mockData';
+import { useNavigate, Navigate } from 'react-router-dom';
+import { Building2, MapPin, ArrowRight, Clock, FolderOpen, Loader2, PlusCircle, Send, CheckCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useProjectData } from '../context/ProjectContext';
+import { db } from '../config/firebase';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
 const ProjectSelect = () => {
     const navigate = useNavigate();
     const { user, isAdmin } = useAuth();
-    const [selectedProject, setSelectedProject] = useState('');
-    const [showPopup, setShowPopup] = useState(false);
+    const { projects, projectsLoading } = useProjectData();
+    const [requestSent, setRequestSent] = useState(false);
+    const [requestMessage, setRequestMessage] = useState('');
+    const [sending, setSending] = useState(false);
 
-    // Filter projects based on user permissions
-    // If not logged in yet, we show all (or none?). For prototype, show all.
-    // If logged in, show only allowed.
-    // Actually, this screen is BEFORE login often? Or after?
-    // Current flow: Select -> Login. So we likely don't know the user yet.
-    // So we keep showing all PROJECTS, but the Login check will verify access later or we assume public list.
-    // Wait, the plan says "Query Firestore for all projects where id is in user.allowedProjects".
-    // But this page is at root `/`. User might not be logged in.
-    // If user IS logged in, we should probably auto-redirect or filter.
+    const handleRequestAccess = async () => {
+        setSending(true);
+        try {
+            await addDoc(collection(db, 'access_requests'), {
+                userId: user.uid,
+                email: user.email,
+                name: user.name || user.email?.split('@')[0],
+                message: requestMessage.trim(),
+                status: 'pending',
+                createdAt: serverTimestamp(),
+            });
+            setRequestSent(true);
+        } catch (err) {
+            console.error('Error sending access request:', err);
+        }
+        setSending(false);
+    };
 
-    // Improved Flow: 
-    // If user is null, show "Sign In to View Projects" OR allow selecting a project to "Login into".
-    // The current flow is "Select Project -> Login". 
-    // Let's stick to "Select Project -> Login" for now, but update the next step.
+    // Auto-redirect if user has exactly 1 project
+    if (!projectsLoading && projects.length === 1 && !isAdmin) {
+        return <Navigate to={`/project/${projects[0].id}`} replace />;
+    }
 
-    const handleContinue = () => {
-        if (!selectedProject) return;
+    const displayName = user?.name || user?.email?.split('@')[0] || 'User';
 
-        if (selectedProject === 'south-mall') {
-            // For now, allow south-mall and maybe others if we add them
-            navigate(`/project/${selectedProject}`);
-        } else {
-            setShowPopup(true);
+    const getStatusColor = (status) => {
+        switch (status) {
+            case 'In Progress': return 'badge-success';
+            case 'Planning': return 'badge-warning';
+            case 'On Hold': return 'badge-warning';
+            case 'Ongoing': return 'badge-info';
+            default: return 'badge-neutral';
         }
     };
 
     return (
-        <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-
-            <div className="w-full max-w-md bg-white rounded-xl shadow-2xl p-8 border border-gray-100 relative overflow-hidden">
-                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-600 to-cyan-500"></div>
-
-                <div className="mb-8 flex flex-col items-center">
-                    <img src={`${import.meta.env.BASE_URL}logo.png`} alt="EMG Logo" className="h-14 w-auto mb-4" />
-                    <h1 className="text-2xl font-bold text-gray-800 text-center">Project Portal</h1>
-                    <p className="text-gray-500 text-sm mt-2 text-center">Select your project to access site updates and documentation.</p>
-                </div>
-
-                <div className="space-y-4">
-                    <div>
-                        <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Select Project</label>
-                        <div className="relative">
-                            <select
-                                className="w-full appearance-none bg-gray-50 border border-gray-200 text-gray-700 py-3 px-4 pr-8 rounded-lg leading-tight focus:outline-none focus:bg-white focus:border-blue-500 transition-colors"
-                                value={selectedProject}
-                                onChange={(e) => setSelectedProject(e.target.value)}
-                            >
-                                <option value="" disabled>Select a project...</option>
-                                {PROJECTS.map(p => (
-                                    <option key={p.id} value={p.id}>{p.name}</option>
-                                ))}
-                            </select>
-                            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
-                                <ChevronRight size={16} className="rotate-90" />
-                            </div>
-                        </div>
-                    </div>
-
-                    <button
-                        onClick={handleContinue}
-                        disabled={!selectedProject}
-                        className={`w-full py-3 rounded-lg font-semibold flex items-center justify-center gap-2 transition-all ${selectedProject ? 'bg-blue-600 text-white shadow-lg shadow-blue-200 hover:bg-blue-700' : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}
-                    >
-                        {selectedProject === 'south-mall' ? 'Continue to Login' : 'Request Access'}
-                        <ChevronRight size={18} />
-                    </button>
-                </div>
-
-                <div className="mt-8 flex items-center justify-center gap-2 text-xs text-gray-400">
-                    <Lock size={12} />
-                    <span>Secure Connection • EMG Client Services</span>
-                </div>
+        <div className="container max-w-4xl">
+            <div className="mb-8">
+                <h1 className="text-2xl font-bold text-[var(--color-brand-primary)]">
+                    Welcome, {displayName}
+                </h1>
+                <p className="text-[var(--color-text-secondary)]">Select a project to view updates and documentation.</p>
             </div>
 
-            {/* Access Denied Popup */}
-            {showPopup && (
-                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
-                    <div className="bg-white rounded-lg shadow-xl max-w-sm w-full p-6 text-center relative">
-                        <button onClick={() => setShowPopup(false)} className="absolute top-4 right-4 text-gray-300 hover:text-gray-500">
-                            <X size={20} />
-                        </button>
-                        <div className="w-12 h-12 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                            <AlertCircle size={24} />
-                        </div>
-                        <h3 className="text-lg font-bold text-gray-800 mb-2">Restricted Access</h3>
-                        <p className="text-sm text-gray-500 mb-6">
-                            The portal for <strong>{PROJECTS.find(p => p.id === selectedProject)?.name}</strong> is currently restricted to authorized stakeholders only.
-                        </p>
-                        <button onClick={() => setShowPopup(false)} className="btn btn-primary w-full text-sm">
-                            Request Authorization
-                        </button>
-                    </div>
+            {isAdmin && (
+                <div className="mb-6">
+                    <button
+                        onClick={() => navigate('/admin/projects/new')}
+                        className="btn btn-primary gap-2 text-sm"
+                    >
+                        <PlusCircle size={16} /> Create New Project
+                    </button>
                 </div>
             )}
 
+            {projectsLoading ? (
+                <div className="flex items-center justify-center py-20">
+                    <Loader2 size={32} className="animate-spin text-gray-400" />
+                </div>
+            ) : projects.length === 0 ? (
+                <div className="text-center py-16">
+                    <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
+                        <FolderOpen size={28} className="text-gray-300" />
+                    </div>
+                    <h2 className="text-lg font-semibold text-gray-700 mb-2">No Projects Assigned</h2>
+                    <p className="text-sm text-gray-500 max-w-md mx-auto mb-6">
+                        You don't have access to any projects yet. Send a request to your administrator.
+                    </p>
+                    {requestSent ? (
+                        <div className="flex items-center justify-center gap-2 text-green-600 text-sm">
+                            <CheckCircle size={16} /> Access request sent. An admin will review it shortly.
+                        </div>
+                    ) : (
+                        <div className="max-w-sm mx-auto space-y-3">
+                            <textarea
+                                className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                                rows="2"
+                                placeholder="Optional message (e.g. which project you need access to)"
+                                value={requestMessage}
+                                onChange={(e) => setRequestMessage(e.target.value)}
+                            />
+                            <button
+                                onClick={handleRequestAccess}
+                                disabled={sending}
+                                className="btn btn-primary gap-2 text-sm disabled:opacity-70"
+                            >
+                                <Send size={14} /> {sending ? 'Sending...' : 'Request Access'}
+                            </button>
+                        </div>
+                    )}
+                </div>
+            ) : (
+                <div className="space-y-4">
+                    {projects.map((project) => (
+                        <div
+                            key={project.id}
+                            onClick={() => navigate(`/project/${project.id}`)}
+                            className="card hover:shadow-md transition-all cursor-pointer border-l-4 border-l-[var(--color-accent)] group"
+                        >
+                            <div className="flex justify-between items-start">
+                                <div className="flex-1">
+                                    <div className="flex items-center gap-3 mb-1">
+                                        <h3 className="text-lg font-semibold text-[var(--color-brand-primary)] group-hover:text-[var(--color-accent)] transition-colors">
+                                            {project.name}
+                                        </h3>
+                                        <span className={`badge ${getStatusColor(project.status)}`}>{project.status}</span>
+                                    </div>
+                                    <div className="flex items-center gap-4 text-sm text-[var(--color-text-secondary)]">
+                                        {project.location && (
+                                            <span className="flex items-center gap-1"><MapPin size={14} /> {project.location}</span>
+                                        )}
+                                        {project.lastUpdated && (
+                                            <span className="flex items-center gap-1"><Clock size={14} /> Updated {project.lastUpdated}</span>
+                                        )}
+                                    </div>
+                                    {project.summary && (
+                                        <p className="text-sm text-gray-500 mt-2 line-clamp-2">{project.summary}</p>
+                                    )}
+                                </div>
+                                <ArrowRight size={20} className="text-gray-300 group-hover:text-[var(--color-accent)] transition-colors mt-1 flex-shrink-0" />
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
         </div>
     );
 };

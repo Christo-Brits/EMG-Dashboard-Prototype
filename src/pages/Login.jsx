@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ArrowRight, ChevronLeft, CheckCircle } from 'lucide-react';
+import { ArrowRight, CheckCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 const Login = () => {
@@ -15,7 +15,7 @@ const Login = () => {
     const [successMsg, setSuccessMsg] = useState('');
     const [loading, setLoading] = useState(false);
 
-    const redirectTo = location.state?.from?.pathname || '/';
+    const redirectTo = location.state?.from?.pathname || '/projects';
 
     const handleAuth = async (e) => {
         e.preventDefault();
@@ -73,13 +73,6 @@ const Login = () => {
     return (
         <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
             <div className="max-w-md w-full bg-white rounded-xl shadow-lg p-8 border border-gray-100">
-
-                <button
-                    onClick={() => navigate('/')}
-                    className="flex items-center text-sm text-gray-500 hover:text-gray-700 mb-6 transition-colors"
-                >
-                    <ChevronLeft size={16} /> Back to Project Selection
-                </button>
 
                 <div className="mb-6 text-center sm:text-left">
                     <img src={`${import.meta.env.BASE_URL}logo.png`} alt="EMG Logo" className="h-12 w-auto mb-6 mx-auto sm:mx-0" />
