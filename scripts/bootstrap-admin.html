@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head><title>Bootstrap Admin</title></head>
+<body>
+<h2>EMG Admin Bootstrap</h2>
+<p id="status">Loading Firebase...</p>
+<script type="module">
+  import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js';
+  import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js';
+  import { getFirestore, doc, getDoc, setDoc, updateDoc } from 'https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js';
+
+  const app = initializeApp({
+    apiKey: "AIzaSyDPu6NgnUI-D33CqzaRDEq9fbhUFdeX13I",
+    authDomain: "emg-dashboard-prototype.firebaseapp.com",
+    projectId: "emg-dashboard-prototype",
+    storageBucket: "emg-dashboard-prototype.firebasestorage.app",
+    messagingSenderId: "380024752912",
+    appId: "1:380024752912:web:0e4959eab50bc2bd987395"
+  });
+
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+  const status = document.getElementById('status');
+
+  onAuthStateChanged(auth, async (user) => {
+    if (user) {
+      status.textContent = `Signed in as ${user.email}. Checking user doc...`;
+
+      const userRef = doc(db, 'users', user.uid);
+      const snap = await getDoc(userRef);
+
+      try {
+        if (snap.exists()) {
+          status.textContent = `Current globalRole: "${snap.data().globalRole}". Updating to admin...`;
+          await updateDoc(userRef, { globalRole: 'admin' });
+        } else {
+          status.textContent = `No user doc found. Creating admin profile...`;
+          await setDoc(userRef, {
+            email: user.email,
+            name: user.email.split('@')[0],
+            globalRole: 'admin',
+            projectRoles: {},
+            allowedProjects: [],
+            createdAt: new Date()
+          });
+        }
+        status.innerHTML = `<strong style="color:green">✅ SUCCESS!</strong> Admin profile created for ${user.email} (UID: ${user.uid}).<br><br>Now go back to the dashboard and <strong>refresh the page</strong>.`;
+      } catch (err) {
+        status.innerHTML = `<strong style="color:red">❌ Failed:</strong> ${err.message}`;
+      }
+    } else {
+      status.textContent = 'Not signed in. Signing in...';
+      // Prompt for password
+      const pw = prompt('Enter password for christo@emgroup.co.nz:');
+      if (pw) {
+        try {
+          await signInWithEmailAndPassword(auth, 'christo@emgroup.co.nz', pw);
+        } catch (err) {
+          status.innerHTML = `<strong style="color:red">Login failed:</strong> ${err.message}`;
+        }
+      }
+    }
+  });
+</script>
+</body>
+</html>

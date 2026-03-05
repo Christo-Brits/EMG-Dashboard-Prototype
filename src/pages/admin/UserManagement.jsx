@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { db } from '../../config/firebase';
 import {
-    collection, onSnapshot, doc, updateDoc, setDoc, query,
+    collection, onSnapshot, doc, updateDoc, setDoc, getDoc, query,
     where, getDocs, serverTimestamp, orderBy, arrayUnion, arrayRemove
 } from 'firebase/firestore';
 import { roleLabel } from '../../utils/permissions';
@@ -37,8 +37,16 @@ const UserManagement = () => {
     // ---------- Real-time subscriptions ----------
     useEffect(() => {
         const unsub1 = onSnapshot(
-            query(collection(db, 'users'), orderBy('createdAt', 'desc')),
-            (snap) => setUsers(snap.docs.map((d) => ({ id: d.id, ...d.data() }))),
+            collection(db, 'users'),
+            (snap) => {
+                const data = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+                data.sort((a, b) => {
+                    const aTime = a.createdAt?.toMillis?.() || a.createdAt?.getTime?.() || 0;
+                    const bTime = b.createdAt?.toMillis?.() || b.createdAt?.getTime?.() || 0;
+                    return bTime - aTime;
+                });
+                setUsers(data);
+            },
             (err) => console.error('Users subscription error:', err),
         );
 
@@ -85,8 +93,30 @@ const UserManagement = () => {
         try {
             await updateDoc(doc(db, 'access_requests', req.id), { status: action, reviewedAt: serverTimestamp() });
             if (action === 'approved' && req.userId) {
-                // Open the edit modal for this user so admin can assign projects
-                const existingUser = users.find((u) => u.id === req.userId);
+                // Try to find the user in local state first
+                let existingUser = users.find((u) => u.id === req.userId);
+
+                if (!existingUser) {
+                    // User doc may not exist yet — fetch or create it
+                    const userRef = doc(db, 'users', req.userId);
+                    const userSnap = await getDoc(userRef);
+                    if (userSnap.exists()) {
+                        existingUser = { id: userSnap.id, ...userSnap.data() };
+                    } else {
+                        // Create a basic user doc so we can assign projects
+                        const newUserData = {
+                            email: req.email,
+                            name: req.name || req.email.split('@')[0],
+                            globalRole: 'user',
+                            projectRoles: {},
+                            allowedProjects: [],
+                            createdAt: serverTimestamp(),
+                        };
+                        await setDoc(userRef, newUserData);
+                        existingUser = { id: req.userId, ...newUserData };
+                    }
+                }
+
                 if (existingUser) openEdit(existingUser);
             }
             flash('success', action === 'approved'

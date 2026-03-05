@@ -19,7 +19,10 @@ service cloud.firestore {
     // User profiles
     match /users/{userId} {
       allow read: if isAuth() && (request.auth.uid == userId || isAdmin());
-      allow write: if isAdmin() || (isAuth() && request.auth.uid == userId
+      // Any authenticated user can create their own profile on first sign-in
+      allow create: if isAuth() && request.auth.uid == userId;
+      // Admins can update anything; users can only update their own name
+      allow update: if isAdmin() || (isAuth() && request.auth.uid == userId
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name']));
     }
 
@@ -40,7 +43,8 @@ service cloud.firestore {
       match /{subcollection}/{docId} {
         allow read: if hasProjectAccess(projectId);
         allow create: if hasProjectAccess(projectId);
-        allow update, delete: if isAdmin();
+        allow update: if hasProjectAccess(projectId);
+        allow delete: if isAdmin();
       }
     }
 
