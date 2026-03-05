@@ -34,10 +34,10 @@ const ProjectGuard = ({ children }) => {
                         You don't have access to this project. Contact an administrator to request access.
                     </p>
                     <Link
-                        to="/dashboard"
+                        to="/projects"
                         className="btn btn-primary px-6 py-2"
                     >
-                        Back to Dashboard
+                        Back to Projects
                     </Link>
                 </div>
             </div>

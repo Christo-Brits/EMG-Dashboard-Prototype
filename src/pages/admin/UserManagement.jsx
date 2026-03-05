@@ -3,7 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import { db } from '../../config/firebase';
 import {
     collection, onSnapshot, doc, updateDoc, setDoc, query,
-    where, getDocs, serverTimestamp, orderBy
+    where, getDocs, serverTimestamp, orderBy, arrayUnion, arrayRemove
 } from 'firebase/firestore';
 import { roleLabel } from '../../utils/permissions';
 import {
@@ -11,8 +11,6 @@ import {
     ChevronDown, Mail, Shield, FolderOpen, Clock
 } from 'lucide-react';
 
-// Available project IDs (same set used elsewhere in the app)
-const ALL_PROJECTS = ['south-mall', 'north-end'];
 const GLOBAL_ROLES = ['admin', 'user'];
 const PROJECT_ROLES = ['admin', 'project_manager', 'stakeholder', 'viewer'];
 
@@ -20,8 +18,10 @@ const UserManagement = () => {
     const { user: currentUser } = useAuth();
 
     // ---------- State ----------
+    const [allProjects, setAllProjects] = useState([]);
     const [users, setUsers] = useState([]);
     const [pendingInvites, setPendingInvites] = useState([]);
+    const [accessRequests, setAccessRequests] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [editingUser, setEditingUser] = useState(null);
     const [showInvite, setShowInvite] = useState(false);
@@ -48,7 +48,19 @@ const UserManagement = () => {
             (err) => console.error('Invites subscription error:', err),
         );
 
-        return () => { unsub1(); unsub2(); };
+        const unsub3 = onSnapshot(
+            collection(db, 'projects'),
+            (snap) => setAllProjects(snap.docs.map((d) => ({ id: d.id, name: d.data().name || d.id }))),
+            (err) => console.error('Projects subscription error:', err),
+        );
+
+        const unsub4 = onSnapshot(
+            query(collection(db, 'access_requests'), where('status', '==', 'pending')),
+            (snap) => setAccessRequests(snap.docs.map((d) => ({ id: d.id, ...d.data() }))),
+            (err) => console.error('Access requests subscription error:', err),
+        );
+
+        return () => { unsub1(); unsub2(); unsub3(); unsub4(); };
     }, []);
 
     // ---------- Filtered users ----------
@@ -68,6 +80,24 @@ const UserManagement = () => {
         setTimeout(() => setFeedback(null), 4000);
     };
 
+    // ---------- Access requests ----------
+    const handleAccessRequest = async (req, action) => {
+        try {
+            await updateDoc(doc(db, 'access_requests', req.id), { status: action, reviewedAt: serverTimestamp() });
+            if (action === 'approved' && req.userId) {
+                // Open the edit modal for this user so admin can assign projects
+                const existingUser = users.find((u) => u.id === req.userId);
+                if (existingUser) openEdit(existingUser);
+            }
+            flash('success', action === 'approved'
+                ? `Request from ${req.email} approved. Assign projects below.`
+                : `Request from ${req.email} denied.`);
+        } catch (err) {
+            console.error('Access request error:', err);
+            flash('error', 'Failed to process request.');
+        }
+    };
+
     // ---------- Edit user ----------
     const openEdit = (u) => {
         setEditingUser({
@@ -81,11 +111,23 @@ const UserManagement = () => {
     const saveEdit = async () => {
         if (!editingUser) return;
         try {
+            const oldProjects = editingUser.allowedProjects || [];
+            const newProjects = editingUser._allowedProjects;
+
             await updateDoc(doc(db, 'users', editingUser.id), {
                 globalRole: editingUser._globalRole,
-                allowedProjects: editingUser._allowedProjects,
+                allowedProjects: newProjects,
                 projectRoles: editingUser._projectRoles,
             });
+
+            // Dual sync: update teamMembers on project docs
+            const added = newProjects.filter((p) => !oldProjects.includes(p));
+            const removed = oldProjects.filter((p) => !newProjects.includes(p));
+            await Promise.all([
+                ...added.map((pid) => updateDoc(doc(db, 'projects', pid), { teamMembers: arrayUnion(editingUser.id) })),
+                ...removed.map((pid) => updateDoc(doc(db, 'projects', pid), { teamMembers: arrayRemove(editingUser.id) })),
+            ]);
+
             flash('success', `Updated ${editingUser.email}.`);
             setEditingUser(null);
         } catch (err) {
@@ -126,6 +168,11 @@ const UserManagement = () => {
                     projectRoles: mergedRoles,
                     ...(inviteRole === 'admin' ? { globalRole: 'admin' } : {}),
                 });
+                // Dual sync: add user to project teamMembers
+                const newlyAdded = inviteProjects.filter((p) => !(existingUser.allowedProjects || []).includes(p));
+                await Promise.all(newlyAdded.map((pid) =>
+                    updateDoc(doc(db, 'projects', pid), { teamMembers: arrayUnion(existingUser.id) })
+                ));
                 flash('success', `Updated existing user ${email}.`);
             } else {
                 // Create pending invite
@@ -224,22 +271,22 @@ const UserManagement = () => {
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">Assign Projects</label>
                             <div className="space-y-2">
-                                {ALL_PROJECTS.map((pid) => (
-                                    <div key={pid} className="flex items-center gap-3">
+                                {allProjects.map((proj) => (
+                                    <div key={proj.id} className="flex items-center gap-3">
                                         <label className="flex items-center gap-2 cursor-pointer">
                                             <input
                                                 type="checkbox"
-                                                checked={inviteProjects.includes(pid)}
-                                                onChange={() => toggleInviteProject(pid)}
+                                                checked={inviteProjects.includes(proj.id)}
+                                                onChange={() => toggleInviteProject(proj.id)}
                                                 className="rounded border-gray-300"
                                             />
-                                            <span className="text-sm text-gray-700 font-medium">{pid}</span>
+                                            <span className="text-sm text-gray-700 font-medium">{proj.name}</span>
                                         </label>
-                                        {inviteProjects.includes(pid) && (
+                                        {inviteProjects.includes(proj.id) && (
                                             <select
                                                 className="text-sm border border-gray-300 rounded-md px-2 py-1"
-                                                value={inviteProjectRoles[pid] || 'stakeholder'}
-                                                onChange={(e) => setInviteProjectRoles((r) => ({ ...r, [pid]: e.target.value }))}
+                                                value={inviteProjectRoles[proj.id] || 'stakeholder'}
+                                                onChange={(e) => setInviteProjectRoles((r) => ({ ...r, [proj.id]: e.target.value }))}
                                             >
                                                 {PROJECT_ROLES.map((r) => <option key={r} value={r}>{roleLabel(r)}</option>)}
                                             </select>
@@ -274,6 +321,43 @@ const UserManagement = () => {
                                     <span className="text-gray-500">{(inv.projects || []).join(', ') || 'No projects'}</span>
                                 </div>
                                 <span className="text-xs text-gray-400">Invited by {inv.invitedBy}</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {/* Access requests */}
+            {accessRequests.length > 0 && (
+                <div className="bg-blue-50 rounded-xl border border-blue-200 p-4 mb-6">
+                    <div className="flex items-center gap-2 mb-3">
+                        <Users size={16} className="text-blue-600" />
+                        <h3 className="text-sm font-semibold text-blue-800">Access Requests ({accessRequests.length})</h3>
+                    </div>
+                    <div className="space-y-2">
+                        {accessRequests.map((req) => (
+                            <div key={req.id} className="flex items-center justify-between text-sm bg-white rounded-lg p-3 border border-blue-100">
+                                <div className="flex-1">
+                                    <div className="flex items-center gap-3">
+                                        <span className="font-medium text-gray-800">{req.name || req.email}</span>
+                                        <span className="text-gray-400 text-xs">{req.email}</span>
+                                    </div>
+                                    {req.message && <p className="text-xs text-gray-500 mt-1">{req.message}</p>}
+                                </div>
+                                <div className="flex items-center gap-2 ml-4">
+                                    <button
+                                        onClick={() => handleAccessRequest(req, 'approved')}
+                                        className="text-xs font-medium text-green-600 hover:text-green-800 bg-green-50 px-2.5 py-1 rounded border border-green-200"
+                                    >
+                                        Approve
+                                    </button>
+                                    <button
+                                        onClick={() => handleAccessRequest(req, 'denied')}
+                                        className="text-xs font-medium text-red-600 hover:text-red-800 bg-red-50 px-2.5 py-1 rounded border border-red-200"
+                                    >
+                                        Deny
+                                    </button>
+                                </div>
                             </div>
                         ))}
                     </div>
@@ -383,25 +467,25 @@ const UserManagement = () => {
                         <div className="mb-6">
                             <label className="block text-sm font-medium text-gray-700 mb-2">Project Access</label>
                             <div className="space-y-2">
-                                {ALL_PROJECTS.map((pid) => (
-                                    <div key={pid} className="flex items-center gap-3">
+                                {allProjects.map((proj) => (
+                                    <div key={proj.id} className="flex items-center gap-3">
                                         <label className="flex items-center gap-2 cursor-pointer">
                                             <input
                                                 type="checkbox"
-                                                checked={editingUser._allowedProjects.includes(pid)}
-                                                onChange={() => toggleProject(pid)}
+                                                checked={editingUser._allowedProjects.includes(proj.id)}
+                                                onChange={() => toggleProject(proj.id)}
                                                 className="rounded border-gray-300"
                                             />
-                                            <span className="text-sm text-gray-700 font-medium">{pid}</span>
+                                            <span className="text-sm text-gray-700 font-medium">{proj.name}</span>
                                         </label>
-                                        {editingUser._allowedProjects.includes(pid) && (
+                                        {editingUser._allowedProjects.includes(proj.id) && (
                                             <select
                                                 className="text-sm border border-gray-300 rounded-md px-2 py-1"
-                                                value={editingUser._projectRoles[pid] || 'stakeholder'}
+                                                value={editingUser._projectRoles[proj.id] || 'stakeholder'}
                                                 onChange={(e) =>
                                                     setEditingUser((prev) => ({
                                                         ...prev,
-                                                        _projectRoles: { ...prev._projectRoles, [pid]: e.target.value },
+                                                        _projectRoles: { ...prev._projectRoles, [proj.id]: e.target.value },
                                                     }))
                                                 }
                                             >

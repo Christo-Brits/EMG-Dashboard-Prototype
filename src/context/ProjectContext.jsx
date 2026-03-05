@@ -1,5 +1,4 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { PROJECTS, UPDATES, ACTIONS, QA, DOCUMENTS } from '../data/mockData';
 import { db, storage } from '../config/firebase';
 import {
     collection,
@@ -10,30 +9,76 @@ import {
     deleteDoc,
     setDoc,
     query,
-    orderBy
+    where,
+    documentId
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { useAuth } from './AuthContext';
 
 const ProjectContext = createContext();
 
 export const useProjectData = () => useContext(ProjectContext);
 
-// Initial Logic removed. We now use activeProjectId state.
+const DEFAULT_FOLDERS = [
+    { id: 'folder-drawings', name: 'Drawings', type: 'folder', items: [] },
+    { id: 'folder-rfis', name: 'RFIs & Technical Queries', type: 'folder', items: [] },
+    { id: 'folder-reports', name: 'Reports & Inspections', type: 'folder', items: [] },
+    { id: 'folder-si', name: 'Site Instructions', type: 'folder', items: [] },
+];
 
 export const ProjectProvider = ({ children }) => {
-    // Initial states (will be populated by Firestore)
+    const { user, isAdmin } = useAuth();
+
     const [activeProjectId, setActiveProjectId] = useState(null);
-    const [projects, setProjects] = useState(PROJECTS);
+    const [projects, setProjects] = useState([]);
+    const [projectsLoading, setProjectsLoading] = useState(true);
     const [updates, setUpdates] = useState([]);
     const [actions, setActions] = useState([]);
     const [qa, setQa] = useState([]);
     const [documents, setDocuments] = useState([]);
     const [photos, setPhotos] = useState([]);
+    const [dataLoading, setDataLoading] = useState(false);
 
-    // --- Firestore Subscriptions ---
+    // --- Firestore Projects Subscription (filtered by user access) ---
+    useEffect(() => {
+        if (!user) {
+            setProjects([]);
+            setProjectsLoading(false);
+            return;
+        }
+
+        setProjectsLoading(true);
+
+        let q;
+        if (isAdmin) {
+            q = collection(db, 'projects');
+        } else if (user.allowedProjects?.length > 0) {
+            // Firestore 'in' query supports up to 30 values
+            q = query(
+                collection(db, 'projects'),
+                where(documentId(), 'in', user.allowedProjects.slice(0, 30))
+            );
+        } else {
+            setProjects([]);
+            setProjectsLoading(false);
+            return;
+        }
+
+        const unsub = onSnapshot(q, (snapshot) => {
+            const data = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+            setProjects(data);
+            setProjectsLoading(false);
+        }, (err) => {
+            console.error('Projects sync error:', err);
+            setProjectsLoading(false);
+        });
+
+        return unsub;
+    }, [user, isAdmin]);
+
+    // --- Per-project data subscriptions ---
     useEffect(() => {
         if (!db || !activeProjectId) {
-            // Reset state if no project selected
             setUpdates([]);
             setActions([]);
             setQa([]);
@@ -42,64 +87,58 @@ export const ProjectProvider = ({ children }) => {
             return;
         }
 
+        setDataLoading(true);
         const PID = activeProjectId;
+        let loadedCount = 0;
+        const checkLoaded = () => { loadedCount++; if (loadedCount >= 5) setDataLoading(false); };
 
-        // 1. Projects (Just syncing the main project doc details if we were fully cloud, 
-        // but for now we keep PROJECTS mock for the list and just update the specific project from DB if needed.
-        // Keeping projects local/mock for the "Select" screen simplicity unless expanded.)
-
-        // 2. Updates
-        const updatesRef = collection(db, 'projects', PID, 'updates');
-        const qUpdates = query(updatesRef, orderBy('id', 'desc'));
-        // Note: 'id' in mock data was timestamp-ish number. 
-        // We'll trust the creation time or just sort client side if needed.
-
-        const unsubUpdates = onSnapshot(updatesRef, (snapshot) => {
-            const data = snapshot.docs.map(doc => ({ ...doc.data(), firestoreId: doc.id }));
-            // Sort by date/id desc
+        // Updates
+        const unsubUpdates = onSnapshot(collection(db, 'projects', PID, 'updates'), (snapshot) => {
+            const data = snapshot.docs.map(d => ({ ...d.data(), firestoreId: d.id }));
             data.sort((a, b) => b.id - a.id);
-            setUpdates(data.length > 0 ? data : UPDATES); // Fallback to mock if empty (optional, maybe better to start empty)
-        }, (err) => console.error("Updates Sync Error:", err));
+            setUpdates(data);
+            checkLoaded();
+        }, (err) => { console.error("Updates Sync Error:", err); checkLoaded(); });
 
-        // 3. Actions
-        const actionsRef = collection(db, 'projects', PID, 'actions');
-        const unsubActions = onSnapshot(actionsRef, (snapshot) => {
-            const data = snapshot.docs.map(doc => ({ ...doc.data(), firestoreId: doc.id }));
-            setActions(data.length > 0 ? data : ACTIONS);
+        // Actions
+        const unsubActions = onSnapshot(collection(db, 'projects', PID, 'actions'), (snapshot) => {
+            const data = snapshot.docs.map(d => ({ ...d.data(), firestoreId: d.id }));
+            setActions(data);
+            checkLoaded();
         });
 
-        // 4. Q&A
-        const qaRef = collection(db, 'projects', PID, 'qa');
-        const unsubOA = onSnapshot(qaRef, (snapshot) => {
-            const data = snapshot.docs.map(doc => ({ ...doc.data(), firestoreId: doc.id }));
+        // Q&A
+        const unsubQA = onSnapshot(collection(db, 'projects', PID, 'qa'), (snapshot) => {
+            const data = snapshot.docs.map(d => ({ ...d.data(), firestoreId: d.id }));
             data.sort((a, b) => b.id - a.id);
-            setQa(data.length > 0 ? data : QA);
+            setQa(data);
+            checkLoaded();
         });
 
-        // 5. Photos
-        const photosRef = collection(db, 'projects', PID, 'photos');
-        const unsubPhotos = onSnapshot(photosRef, (snapshot) => {
-            const data = snapshot.docs.map(doc => ({ ...doc.data(), firestoreId: doc.id }));
+        // Photos
+        const unsubPhotos = onSnapshot(collection(db, 'projects', PID, 'photos'), (snapshot) => {
+            const data = snapshot.docs.map(d => ({ ...d.data(), firestoreId: d.id }));
             data.sort((a, b) => b.id - a.id);
-            setPhotos(data); // If empty, we might want to seed?
+            setPhotos(data);
+            checkLoaded();
         });
 
-        // 6. Documents (Stored as a single JSON blob for hierarchy structure)
+        // Documents
         const docStructRef = doc(db, 'projects', PID, 'data', 'documents');
         const unsubDocs = onSnapshot(docStructRef, (docSnap) => {
             if (docSnap.exists()) {
                 setDocuments(docSnap.data().structure);
             } else {
-                // If it doesn't exist yet, initialize it
-                setDoc(docStructRef, { structure: DOCUMENTS });
-                setDocuments(DOCUMENTS);
+                setDoc(docStructRef, { structure: DEFAULT_FOLDERS });
+                setDocuments(DEFAULT_FOLDERS);
             }
+            checkLoaded();
         });
 
         return () => {
             unsubUpdates();
             unsubActions();
-            unsubOA();
+            unsubQA();
             unsubPhotos();
             unsubDocs();
         };
@@ -254,7 +293,7 @@ export const ProjectProvider = ({ children }) => {
     };
 
     // --- Documents (Full Structure Update) ---
-    const saveDocumentsStruture = async (newDocs) => {
+    const saveDocumentsStructure = async (newDocs) => {
         if (!activeProjectId) return;
         try {
             await setDoc(doc(db, 'projects', activeProjectId, 'data', 'documents'), { structure: newDocs });
@@ -290,7 +329,7 @@ export const ProjectProvider = ({ children }) => {
             });
             // Optimistic update
             setDocuments(updatedDocs);
-            saveDocumentsStruture(updatedDocs);
+            saveDocumentsStructure(updatedDocs);
 
         } catch (error) {
             console.error("Error uploading document:", error);
@@ -304,18 +343,26 @@ export const ProjectProvider = ({ children }) => {
             items: folder.items.filter(item => item.id !== fileId)
         }));
         setDocuments(newDocs);
-        saveDocumentsStruture(newDocs);
+        saveDocumentsStructure(newDocs);
     };
 
     // --- Project Details ---
-    const updateProjectDetails = (id, newDetails) => {
+    const updateProjectDetails = async (id, newDetails) => {
+        // Optimistic local update
         setProjects(prev => prev.map(p => p.id === id ? { ...p, ...newDetails } : p));
-        // Note: Not syncing this to firestore in this phase as it's less critical/mocked
+        // Sync to Firestore
+        try {
+            await updateDoc(doc(db, 'projects', id), { ...newDetails, lastUpdated: new Date().toISOString().split('T')[0] });
+        } catch (e) {
+            console.error('Error updating project details:', e);
+        }
     };
 
     return (
         <ProjectContext.Provider value={{
             projects,
+            projectsLoading,
+            dataLoading,
             updates,
             actions,
             qa,

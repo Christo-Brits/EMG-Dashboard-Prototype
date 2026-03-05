@@ -1,14 +1,13 @@
 import React from 'react';
 import { useParams, NavLink, Outlet, Navigate } from 'react-router-dom';
-import { PROJECTS } from '../data/mockData';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Loader2 } from 'lucide-react';
 
 import { useProjectData } from '../context/ProjectContext';
 
 const ProjectDashboard = () => {
     const { projectId } = useParams();
-    const { setActiveProjectId } = useProjectData();
-    const project = PROJECTS.find(p => p.id === projectId) || PROJECTS[0]; // Fallback
+    const { projects, projectsLoading, dataLoading, setActiveProjectId } = useProjectData();
+    const project = projects.find(p => p.id === projectId);
 
     React.useEffect(() => {
         if (projectId) {
@@ -35,12 +34,27 @@ const ProjectDashboard = () => {
         { name: 'Project Questions', path: 'qa' },
     ];
 
+    if (projectsLoading) {
+        return (
+            <div className="container max-w-6xl flex items-center justify-center py-20">
+                <Loader2 size={32} className="animate-spin text-gray-400" />
+            </div>
+        );
+    }
+
+    // Project may not be in user's list if they haven't loaded yet (handled by ProjectGuard)
+    const projectName = project?.name || projectId;
+    const projectStatus = project?.status || '';
+    const projectLocation = project?.location || '';
+    const projectClient = project?.client || '';
+    const projectLastUpdated = project?.lastUpdated || '';
+
     return (
         <div className="container max-w-6xl">
             {/* Breadcrumb / Back */}
             <div className="mb-4">
-                <NavLink to="/dashboard" className="text-sm text-gray-500 hover:text-[var(--color-brand-primary)] flex items-center gap-1">
-                    <ArrowLeft size={14} /> Back to Dashboard
+                <NavLink to="/projects" className="text-sm text-gray-500 hover:text-[var(--color-brand-primary)] flex items-center gap-1">
+                    <ArrowLeft size={14} /> Back to Projects
                 </NavLink>
             </div>
 
@@ -49,28 +63,30 @@ const ProjectDashboard = () => {
                 <div className="flex justify-between items-start mb-6">
                     <div>
                         <div className="flex items-center gap-3 mb-2">
-                            <h1 className="text-2xl font-bold text-[var(--color-brand-primary)]">{project.name}</h1>
-                            <span className={`badge ${getStatusColor(project.status)}`}>{project.status}</span>
+                            <h1 className="text-2xl font-bold text-[var(--color-brand-primary)]">{projectName}</h1>
+                            {projectStatus && <span className={`badge ${getStatusColor(projectStatus)}`}>{projectStatus}</span>}
                         </div>
-                        <p className="text-[var(--color-text-secondary)] text-sm">Project ID: {projectId?.toUpperCase()} • Last updated {project.lastUpdated}</p>
+                        <p className="text-[var(--color-text-secondary)] text-sm">
+                            Project ID: {projectId?.toUpperCase()}
+                            {projectLastUpdated && ` • Last updated ${projectLastUpdated}`}
+                        </p>
                     </div>
-                    <div>
-                        {/* Client logo placeholder or similar if needed */}
-                        <div className="text-right">
+                    {projectClient && (
+                        <div className="text-right hidden sm:block">
                             <span className="text-xs text-gray-400 block uppercase tracking-wide">Client</span>
-                            <span className="font-medium">Foodstuffs North Island</span>
+                            <span className="font-medium">{projectClient}</span>
                         </div>
-                    </div>
+                    )}
                 </div>
 
-                {/* Tabs */}
-                <div className="flex border-b border-gray-200">
+                {/* Tabs — horizontal scroll on mobile */}
+                <div className="flex border-b border-gray-200 overflow-x-auto scrollbar-hide">
                     {tabs.map((tab) => (
                         <NavLink
                             key={tab.path}
                             to={tab.path}
                             className={({ isActive }) =>
-                                `px-6 py-3 text-sm font-medium border-b-2 transition-colors ${isActive
+                                `px-6 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${isActive
                                     ? 'border-[var(--color-brand-primary)] text-[var(--color-brand-primary)]'
                                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                                 }`
@@ -84,7 +100,13 @@ const ProjectDashboard = () => {
 
             {/* Content Area */}
             <div className="bg-white border border-t-0 border-[var(--color-border)] rounded-b-lg p-6 min-h-[500px]">
-                <Outlet />
+                {dataLoading ? (
+                    <div className="flex items-center justify-center py-20">
+                        <Loader2 size={24} className="animate-spin text-gray-400" />
+                    </div>
+                ) : (
+                    <Outlet />
+                )}
             </div>
         </div>
     );

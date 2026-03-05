@@ -1,9 +1,28 @@
-import React, { useState, useRef } from 'react';
-import { Calendar, Tag, Trash2, Upload, Plus, Camera } from 'lucide-react';
+import React, { useState, useRef, useCallback } from 'react';
+import { Calendar, Tag, Trash2, Upload, Plus, Camera, X, Loader2, CheckCircle, AlertCircle, Image } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useProjectData } from '../../context/ProjectContext';
 import { useProjectPermissions } from '../../hooks/useProjectPermissions';
 import DeleteConfirmModal from '../common/DeleteConfirmModal';
+
+/**
+ * Convert HEIC/HEIF files to JPEG using heic2any (lazy-loaded).
+ * Returns the original file if not HEIC or if conversion fails.
+ */
+const convertHeicIfNeeded = async (file) => {
+    const ext = file.name.split('.').pop().toLowerCase();
+    if (ext !== 'heic' && ext !== 'heif') return file;
+
+    try {
+        const heic2any = (await import('heic2any')).default;
+        const blob = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.8 });
+        const converted = Array.isArray(blob) ? blob[0] : blob;
+        return new File([converted], file.name.replace(/\.heic$/i, '.jpg').replace(/\.heif$/i, '.jpg'), { type: 'image/jpeg' });
+    } catch (err) {
+        console.error('HEIC conversion failed:', err);
+        return file;
+    }
+};
 
 const PhotosTab = () => {
     const { user } = useAuth();
@@ -11,9 +30,9 @@ const PhotosTab = () => {
     const { canUploadFiles, canDeleteFiles } = useProjectPermissions();
 
     const [showUpload, setShowUpload] = useState(false);
-    const [newPhoto, setNewPhoto] = useState({ desc: '', tag: 'Progress', file: null, preview: '' });
+    const [uploadQueue, setUploadQueue] = useState([]); // { id, file, preview, desc, tag, status: 'pending'|'uploading'|'done'|'error' }
     const fileInputRef = useRef(null);
-    const [isUploading, setIsUploading] = useState(false);
+    const [isDragging, setIsDragging] = useState(false);
 
     // Delete State
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -31,64 +50,90 @@ const PhotosTab = () => {
         }
     };
 
-    const compressImage = (file) => {
-        return new Promise((resolve) => {
-            const reader = new FileReader();
-            reader.readAsDataURL(file);
-            reader.onload = (event) => {
-                const img = new Image();
-                img.src = event.target.result;
-                img.onload = () => {
-                    const canvas = document.createElement('canvas');
-                    const MAX_WIDTH = 800;
-                    const scaleSize = MAX_WIDTH / img.width;
-                    const width = (img.width > MAX_WIDTH) ? MAX_WIDTH : img.width;
-                    const height = (img.width > MAX_WIDTH) ? (img.height * scaleSize) : img.height;
+    // --- File handling ---
+    const processFiles = useCallback(async (files) => {
+        const imageFiles = Array.from(files).filter(f =>
+            f.type.startsWith('image/') || /\.(heic|heif)$/i.test(f.name)
+        );
 
-                    canvas.width = width;
-                    canvas.height = height;
+        if (imageFiles.length === 0) return;
 
-                    const ctx = canvas.getContext('2d');
-                    ctx.drawImage(img, 0, 0, width, height);
-
-                    // Compress to JPEG 0.7 quality
-                    const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
-                    resolve(dataUrl);
+        const newItems = await Promise.all(
+            imageFiles.map(async (file) => {
+                const converted = await convertHeicIfNeeded(file);
+                return {
+                    id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+                    file: converted,
+                    preview: URL.createObjectURL(converted),
+                    desc: converted.name.replace(/\.[^/.]+$/, '').replace(/[_-]/g, ' '),
+                    tag: 'Progress',
+                    status: 'pending',
                 };
-            };
+            })
+        );
+
+        setUploadQueue(prev => [...prev, ...newItems]);
+        if (!showUpload) setShowUpload(true);
+    }, [showUpload]);
+
+    const handleFileChange = (e) => {
+        processFiles(e.target.files);
+        e.target.value = ''; // Reset so same file can be re-selected
+    };
+
+    const removeFromQueue = (id) => {
+        setUploadQueue(prev => {
+            const item = prev.find(i => i.id === id);
+            if (item?.preview) URL.revokeObjectURL(item.preview);
+            return prev.filter(i => i.id !== id);
         });
     };
 
-    const handleFileChange = (e) => {
-        const file = e.target.files[0];
-        if (file) {
-            // Create a preview
-            const previewUrl = URL.createObjectURL(file);
-            setNewPhoto(prev => ({ ...prev, file: file, preview: previewUrl }));
-        }
+    const updateQueueItem = (id, updates) => {
+        setUploadQueue(prev => prev.map(item => item.id === id ? { ...item, ...updates } : item));
     };
 
-    const handleUpload = async (e) => {
-        e.preventDefault();
+    const handleUploadAll = async () => {
+        const pending = uploadQueue.filter(i => i.status === 'pending');
+        if (pending.length === 0) return;
 
-        if (!newPhoto.file) {
-            alert("Please select a photo first.");
-            return;
+        for (const item of pending) {
+            updateQueueItem(item.id, { status: 'uploading' });
+            try {
+                await addPhoto(item.file, item.desc, user?.name || 'Unknown');
+                updateQueueItem(item.id, { status: 'done' });
+            } catch (err) {
+                console.error('Upload failed:', err);
+                updateQueueItem(item.id, { status: 'error' });
+            }
         }
 
-        setIsUploading(true);
-        await addPhoto(newPhoto.file, newPhoto.desc, user?.name || 'Unknown');
-        setIsUploading(false);
+        // Auto-clear completed after a delay
+        setTimeout(() => {
+            setUploadQueue(prev => {
+                prev.filter(i => i.status === 'done').forEach(i => URL.revokeObjectURL(i.preview));
+                return prev.filter(i => i.status !== 'done');
+            });
+        }, 2000);
+    };
 
+    const handleCloseUpload = () => {
+        uploadQueue.forEach(i => { if (i.preview) URL.revokeObjectURL(i.preview); });
+        setUploadQueue([]);
         setShowUpload(false);
-        setNewPhoto({ desc: '', tag: 'Progress', file: null, preview: '' });
     };
 
-    const triggerFileInput = () => {
-        if (fileInputRef.current) {
-            fileInputRef.current.click();
-        }
-    };
+    // --- Drag and drop ---
+    const handleDragOver = useCallback((e) => { e.preventDefault(); setIsDragging(true); }, []);
+    const handleDragLeave = useCallback((e) => { e.preventDefault(); setIsDragging(false); }, []);
+    const handleDrop = useCallback((e) => {
+        e.preventDefault();
+        setIsDragging(false);
+        if (e.dataTransfer.files.length > 0) processFiles(e.dataTransfer.files);
+    }, [processFiles]);
+
+    const pendingCount = uploadQueue.filter(i => i.status === 'pending').length;
+    const uploadingCount = uploadQueue.filter(i => i.status === 'uploading').length;
 
     return (
         <div>
@@ -100,10 +145,9 @@ const PhotosTab = () => {
                             onClick={() => setShowUpload(true)}
                             className="btn btn-primary text-xs gap-1"
                         >
-                            <Plus size={14} /> Upload Photo
+                            <Plus size={14} /> Upload Photos
                         </button>
                     )}
-                    <button className="btn btn-outline text-xs px-3">Latest</button>
                 </div>
             </div>
 
@@ -115,82 +159,117 @@ const PhotosTab = () => {
                 itemType="photo"
             />
 
-            {/* Upload Modal (Simplified inline) */}
+            {/* Upload Panel */}
             {showUpload && (
-                <div className="bg-gray-50 border border-dashed border-gray-300 rounded-lg p-4 mb-6 animate-in fade-in">
-                    <h3 className="font-bold text-gray-700 text-sm mb-3">Upload Site Photo</h3>
-                    <form onSubmit={handleUpload} className="space-y-3">
-                        <div>
-                            <input
-                                className="w-full p-2 text-sm border border-gray-300 rounded"
-                                placeholder="Photo Description"
-                                required
-                                value={newPhoto.desc}
-                                onChange={e => setNewPhoto({ ...newPhoto, desc: e.target.value })}
-                            />
-                        </div>
+                <div
+                    className={`border-2 border-dashed rounded-lg p-6 mb-6 transition-colors ${isDragging ? 'border-blue-400 bg-blue-50' : 'border-gray-300 bg-gray-50'}`}
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onDrop={handleDrop}
+                >
+                    <div className="flex items-center justify-between mb-4">
+                        <h3 className="font-bold text-gray-700 text-sm">Upload Site Photos</h3>
+                        <button onClick={handleCloseUpload} className="text-gray-400 hover:text-gray-600"><X size={18} /></button>
+                    </div>
 
-                        <div className="flex flex-col sm:flex-row gap-3">
-                            <select
-                                className="p-2 text-sm border border-gray-300 rounded sm:w-1/3"
-                                value={newPhoto.tag}
-                                onChange={e => setNewPhoto({ ...newPhoto, tag: e.target.value })}
-                            >
-                                <option>Progress</option>
-                                <option>Safety</option>
-                                <option>Site Works</option>
-                                <option>Interior</option>
-                                <option>Exterior</option>
-                            </select>
+                    {/* Drop zone / file selector */}
+                    <div className="text-center mb-4">
+                        <input
+                            type="file"
+                            ref={fileInputRef}
+                            onChange={handleFileChange}
+                            accept="image/*,.heic,.heif"
+                            multiple
+                            className="hidden"
+                        />
+                        <button
+                            type="button"
+                            onClick={() => fileInputRef.current?.click()}
+                            className="btn btn-outline gap-2 text-sm mx-auto"
+                        >
+                            <Upload size={16} /> Select Photos
+                        </button>
+                        <p className="text-xs text-gray-400 mt-2">
+                            or drag and drop · Supports JPEG, PNG, HEIC and more
+                        </p>
+                    </div>
 
-                            <div className="flex-1 flex gap-2">
-                                <input
-                                    type="file"
-                                    ref={fileInputRef}
-                                    onChange={handleFileChange}
-                                    accept="image/*"
-                                    capture="environment"
-                                    className="hidden"
-                                />
-                                <button
-                                    type="button"
-                                    onClick={triggerFileInput}
-                                    disabled={isUploading}
-                                    className={`flex-1 p-2 text-sm border rounded flex items-center justify-center gap-2 transition-colors ${newPhoto.preview ? 'bg-green-50 text-green-700 border-green-200' : 'bg-white text-gray-500 border-gray-300 hover:bg-gray-50'}`}
-                                >
-                                    {isUploading ? 'Uploading...' : (
-                                        newPhoto.preview ? (
-                                            <>
-                                                <Camera size={16} /> Photo Selected
-                                            </>
-                                        ) : (
-                                            <>
-                                                <Upload size={16} /> Select from Device
-                                            </>
-                                        )
-                                    )}
-                                </button>
+                    {/* Upload Queue */}
+                    {uploadQueue.length > 0 && (
+                        <div className="space-y-3">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                                {uploadQueue.map(item => (
+                                    <div key={item.id} className="relative bg-white rounded-lg border border-gray-200 overflow-hidden">
+                                        <div className="aspect-[4/3] bg-gray-100 relative">
+                                            <img src={item.preview} alt="" className="w-full h-full object-cover" />
+                                            {item.status === 'uploading' && (
+                                                <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+                                                    <Loader2 size={24} className="animate-spin text-white" />
+                                                </div>
+                                            )}
+                                            {item.status === 'done' && (
+                                                <div className="absolute inset-0 bg-green-500/20 flex items-center justify-center">
+                                                    <CheckCircle size={24} className="text-green-600" />
+                                                </div>
+                                            )}
+                                            {item.status === 'error' && (
+                                                <div className="absolute inset-0 bg-red-500/20 flex items-center justify-center">
+                                                    <AlertCircle size={24} className="text-red-600" />
+                                                </div>
+                                            )}
+                                            {item.status === 'pending' && (
+                                                <button
+                                                    onClick={() => removeFromQueue(item.id)}
+                                                    className="absolute top-1 right-1 bg-black/50 text-white rounded-full p-1 hover:bg-black/70"
+                                                >
+                                                    <X size={12} />
+                                                </button>
+                                            )}
+                                        </div>
+                                        <div className="p-2 space-y-1">
+                                            <input
+                                                className="w-full text-xs p-1.5 border border-gray-200 rounded focus:outline-none focus:ring-1 focus:ring-blue-400"
+                                                placeholder="Description"
+                                                value={item.desc}
+                                                disabled={item.status !== 'pending'}
+                                                onChange={(e) => updateQueueItem(item.id, { desc: e.target.value })}
+                                            />
+                                            <select
+                                                className="w-full text-xs p-1.5 border border-gray-200 rounded"
+                                                value={item.tag}
+                                                disabled={item.status !== 'pending'}
+                                                onChange={(e) => updateQueueItem(item.id, { tag: e.target.value })}
+                                            >
+                                                <option>Progress</option>
+                                                <option>Safety</option>
+                                                <option>Site Works</option>
+                                                <option>Interior</option>
+                                                <option>Exterior</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+
+                            <div className="flex items-center justify-between pt-2">
+                                <span className="text-xs text-gray-500">
+                                    {pendingCount} photo{pendingCount !== 1 ? 's' : ''} ready
+                                    {uploadingCount > 0 && ` · ${uploadingCount} uploading`}
+                                </span>
+                                <div className="flex gap-2">
+                                    <button onClick={handleCloseUpload} className="btn btn-outline text-xs bg-white">Cancel</button>
+                                    <button
+                                        onClick={handleUploadAll}
+                                        disabled={pendingCount === 0 || uploadingCount > 0}
+                                        className="btn btn-primary text-xs gap-1 disabled:opacity-50"
+                                    >
+                                        <Upload size={14} />
+                                        Upload {pendingCount > 1 ? `All (${pendingCount})` : ''}
+                                    </button>
+                                </div>
                             </div>
                         </div>
-
-                        {newPhoto.preview && (
-                            <div className="relative h-32 w-full rounded-lg overflow-hidden border border-gray-200 bg-black/5">
-                                <img src={newPhoto.preview} alt="Preview" className="w-full h-full object-contain" />
-                                <button
-                                    type="button"
-                                    onClick={() => setNewPhoto({ ...newPhoto, file: null, preview: '' })}
-                                    className="absolute top-2 right-2 bg-black/50 text-white rounded-full p-1 hover:bg-black/70"
-                                >
-                                    <Trash2 size={12} />
-                                </button>
-                            </div>
-                        )}
-
-                        <div className="flex justify-end gap-2 pt-2">
-                            <button type="button" onClick={() => setShowUpload(false)} className="btn btn-outline text-xs bg-white">Cancel</button>
-                            <button type="submit" className="btn btn-primary text-xs" disabled={!newPhoto.file || isUploading}>Save Photo</button>
-                        </div>
-                    </form>
+                    )}
                 </div>
             )}
 
@@ -208,8 +287,8 @@ const PhotosTab = () => {
                         <div key={photo.id} className="group cursor-pointer relative">
                             <div className="aspect-[4/3] bg-gray-100 rounded-md overflow-hidden relative border border-gray-200 mb-3">
                                 <img
-                                    src={photo.url || photo.src} // Handle old (src) vs new (url)
-                                    alt={photo.desc || photo.caption} // Handle old vs new
+                                    src={photo.url || photo.src}
+                                    alt={photo.desc || photo.caption}
                                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                                 />
                                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors"></div>

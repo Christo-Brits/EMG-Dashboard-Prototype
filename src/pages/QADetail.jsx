@@ -8,7 +8,7 @@ import { hasMinRole } from '../utils/permissions';
 
 const QADetail = () => {
     const { id } = useParams();
-    const { qa, addReply } = useProjectData();
+    const { qa, addReply, activeProjectId } = useProjectData();
     const { user } = useAuth();
     const { role, canReplyToQuestions } = useProjectPermissions();
 
@@ -29,7 +29,7 @@ const QADetail = () => {
     return (
         <div className="container max-w-4xl pt-6">
             <div className="mb-6">
-                <NavLink to="/project/south-mall/qa" className="text-sm text-gray-500 hover:text-[var(--color-brand-primary)] flex items-center gap-1">
+                <NavLink to={`/project/${activeProjectId || 'unknown'}/qa`} className="text-sm text-gray-500 hover:text-[var(--color-brand-primary)] flex items-center gap-1">
                     <ArrowLeft size={14} /> Back to Project Q&A
                 </NavLink>
             </div>
