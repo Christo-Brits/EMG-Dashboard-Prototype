@@ -73,6 +73,18 @@ export const AuthProvider = ({ children }) => {
                     const userSnap = await getDoc(userRef);
                     if (userSnap.exists()) {
                         userData = normaliseUserData(userSnap.data());
+
+                        // Bootstrap: promote initial admin if not yet set
+                        // Remove this block once admin is confirmed in Firestore
+                        const BOOTSTRAP_ADMINS = ['christo@emgroup.co.nz'];
+                        if (
+                            BOOTSTRAP_ADMINS.includes(currentUser.email.toLowerCase()) &&
+                            userData.globalRole !== 'admin'
+                        ) {
+                            userData.globalRole = 'admin';
+                            await updateDoc(userRef, { globalRole: 'admin' });
+                            console.log(`[Bootstrap] Promoted ${currentUser.email} to admin`);
+                        }
                     } else {
                         // Create new user doc for first-time sign-in
                         userData = {
