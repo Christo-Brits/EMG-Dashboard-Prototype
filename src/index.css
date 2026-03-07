@@ -1,3 +1,5 @@
+@import "tailwindcss";
+
 :root {
   /* Brand Colors - Standard "Banking/Construction" Navy */
   --color-brand-primary: #0f172a; /* Slate 900 */
@@ -101,32 +103,6 @@ button {
   background-color: var(--color-bg-app);
 }
 
-.text-sm { font-size: 0.875rem; }
-.text-lg { font-size: 1.125rem; font-weight: 600; }
-.text-xl { font-size: 1.25rem; font-weight: 700; }
-.text-2xl { font-size: 1.5rem; font-weight: 700; }
-.text-secondary { color: var(--color-text-secondary); }
-.font-bold { font-weight: 700; }
-.font-medium { font-weight: 500; }
-
-.flex { display: flex; }
-.flex-col { flex-direction: column; }
-.items-center { align-items: center; }
-.justify-between { justify-content: space-between; }
-.justify-center { justify-content: center; }
-.gap-2 { gap: 0.5rem; }
-.gap-4 { gap: 1rem; }
-.gap-6 { gap: 1.5rem; }
-.p-4 { padding: 1rem; }
-.p-6 { padding: 1.5rem; }
-.p-8 { padding: 2rem; }
-.py-4 { padding-top: 1rem; padding-bottom: 1rem; }
-.px-6 { padding-left: 1.5rem; padding-right: 1.5rem; }
-.mb-4 { margin-bottom: 1rem; }
-.mb-8 { margin-bottom: 2rem; }
-.mt-4 { margin-top: 1rem; }
-.w-full { width: 100%; }
-
 /* Badge component */
 .badge {
   display: inline-flex;
@@ -141,13 +117,17 @@ button {
 .badge-info { background: #dbeafe; color: #1e40af; }
 .badge-neutral { background: #f1f5f9; color: #475569; }
 
-/* Animations */
+/* Custom animations (not covered by Tailwind defaults) */
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
 }
 @keyframes slideInFromTop {
   from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes slideInFromBottom {
+  from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
 }
 @keyframes zoomIn {
@@ -158,19 +138,10 @@ button {
 .animate-in { animation-duration: 300ms; animation-fill-mode: both; }
 .fade-in { animation-name: fadeIn; }
 .slide-in-from-top-2 { animation-name: slideInFromTop; }
+.slide-in-from-bottom-2 { animation-name: slideInFromBottom; }
 .zoom-in-95 { animation-name: zoomIn; }
-.duration-200 { animation-duration: 200ms; }
-.duration-500 { animation-duration: 500ms; }
 
 /* Scrollbar hide for horizontal tab navigation */
 .scrollbar-hide::-webkit-scrollbar { display: none; }
 .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
-
-/* Grid system */
-.grid { display: grid; }
-.grid-cols-1 { grid-template-columns: repeat(1, minmax(0, 1fr)); }
-@media (min-width: 768px) {
-  .md\:grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .md\:col-span-2 { grid-column: span 2 / span 2; }
-}
 

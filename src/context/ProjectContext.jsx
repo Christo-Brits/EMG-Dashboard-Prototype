@@ -14,6 +14,7 @@ import {
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useAuth } from './AuthContext';
+import { useNotifications } from './NotificationContext';
 
 const ProjectContext = createContext();
 
@@ -28,6 +29,7 @@ const DEFAULT_FOLDERS = [
 
 export const ProjectProvider = ({ children }) => {
     const { user, isAdmin } = useAuth();
+    const { notifyProjectTeam } = useNotifications() || {};
 
     const [activeProjectId, setActiveProjectId] = useState(null);
     const [projects, setProjects] = useState([]);
@@ -147,11 +149,29 @@ export const ProjectProvider = ({ children }) => {
     // --- Write Functions ---
 
     // Generic helper to add to a subcollection
+    // --- Audit Logging ---
+    const auditLog = async (action, details = '') => {
+        if (!activeProjectId || !user) return;
+        try {
+            await addDoc(collection(db, 'projects', activeProjectId, 'audit_log'), {
+                action,
+                userId: user.uid,
+                userName: user.name || user.email,
+                details,
+                timestamp: new Date(),
+            });
+        } catch (e) {
+            // Audit logging should never block the main operation
+            console.error('Audit log error:', e);
+        }
+    };
+
     const addToCollection = async (collectionName, item) => {
         const newItem = { ...item, id: Date.now() }; // Ensure numeric ID for sort
         if (!activeProjectId) return;
         try {
             await addDoc(collection(db, 'projects', activeProjectId, collectionName), newItem);
+            auditLog(`create:${collectionName}`, JSON.stringify(newItem).slice(0, 200));
         } catch (e) {
             console.error(`Error adding to ${collectionName}:`, e);
             alert("Sync Error: Check your Firebase Config.");
@@ -163,6 +183,7 @@ export const ProjectProvider = ({ children }) => {
         if (!firestoreId || !activeProjectId) return;
         try {
             await deleteDoc(doc(db, 'projects', activeProjectId, collectionName, firestoreId));
+            auditLog(`delete:${collectionName}`, `doc:${firestoreId}`);
         } catch (e) {
             console.error(`Error deleting from ${collectionName}:`, e);
         }
@@ -173,6 +194,7 @@ export const ProjectProvider = ({ children }) => {
         if (!firestoreId || !activeProjectId) return;
         try {
             await updateDoc(doc(db, 'projects', activeProjectId, collectionName, firestoreId), updates);
+            auditLog(`update:${collectionName}`, `doc:${firestoreId} ${JSON.stringify(updates).slice(0, 200)}`);
         } catch (e) {
             console.error(`Error updating ${collectionName}:`, e);
         }
@@ -186,21 +208,32 @@ export const ProjectProvider = ({ children }) => {
         return await getDownloadURL(storageRef);
     };
 
+    // --- Notification helper ---
+    const getProjectName = () => projects.find(p => p.id === activeProjectId)?.name || activeProjectId;
+
+    const notify = (type, message, link) => {
+        if (notifyProjectTeam && activeProjectId) {
+            notifyProjectTeam(activeProjectId, getProjectName(), { type, message, link }).catch(() => {});
+        }
+    };
+
     // --- Specific Add Functions ---
 
-    const addUpdate = (text, author) => {
+    const addUpdate = (content, author, tag = 'Progress') => {
         const timestamp = new Date().toLocaleString('en-US', {
             weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
         });
         const date = new Date().toISOString().split('T')[0];
 
         addToCollection('updates', {
-            text,
+            content,
             author,
             timestamp,
             date,
+            tag,
             type: 'progress'
         });
+        notify('update', `${author} posted an update on ${getProjectName()}`, `/project/${activeProjectId}/updates`);
     };
     const deleteUpdate = (id) => {
         const item = updates.find(u => u.id === id);
@@ -212,13 +245,14 @@ export const ProjectProvider = ({ children }) => {
     };
 
     // --- Actions ---
-    const addAction = (text, assignee, dueDate) => {
+    const addAction = (task, assignedTo, dueDate) => {
         addToCollection('actions', {
-            text,
-            assignee,
+            task,
+            assignedTo,
             dueDate,
             status: 'Open'
         });
+        notify('action_assigned', `New action: ${task}`, `/project/${activeProjectId}/actions`);
     };
     const updateActionStatus = (id, status) => {
         const item = actions.find(a => a.id === id);
@@ -230,15 +264,21 @@ export const ProjectProvider = ({ children }) => {
     };
 
     // --- Q&A ---
-    // --- Q&A ---
-    const addQuestion = (question, author) => {
+    const addQuestion = (questionData, author) => {
+        // questionData can be a string (legacy) or an object { title, context, category }
+        const fields = typeof questionData === 'string'
+            ? { question: questionData }
+            : { title: questionData.title, context: questionData.context, category: questionData.category };
+
         addToCollection('qa', {
-            question,
+            ...fields,
             author,
             status: 'Open',
             replies: [],
             date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
         });
+        const title = typeof questionData === 'string' ? questionData : questionData.title;
+        notify('qa_question', `New question: ${title}`, `/project/${activeProjectId}/qa`);
     };
 
     const addReply = (questionId, replyContent, author) => {
@@ -254,6 +294,7 @@ export const ProjectProvider = ({ children }) => {
             };
             const updatedReplies = [...thread.replies, newReply];
             updateInCollection('qa', thread.firestoreId, { replies: updatedReplies, status: 'Answered' });
+            notify('qa_answer', `${author} answered: ${thread.title || 'a question'}`, `/project/${activeProjectId}/qa`);
         }
     };
 
@@ -262,7 +303,6 @@ export const ProjectProvider = ({ children }) => {
         if (item) deleteFromCollection('qa', item.firestoreId);
     };
 
-    // --- Photos ---
     // --- Photos ---
     const addPhoto = async (file, caption, author) => {
         if (!activeProjectId) return;
@@ -282,6 +322,7 @@ export const ProjectProvider = ({ children }) => {
                 date: new Date().toLocaleDateString(),
                 timestamp: Date.now()
             });
+            notify('photo_upload', `${author} uploaded a photo to ${getProjectName()}`, `/project/${activeProjectId}/photos`);
         } catch (error) {
             console.error("Error uploading photo:", error);
             alert("Failed to upload photo.");
@@ -297,6 +338,7 @@ export const ProjectProvider = ({ children }) => {
         if (!activeProjectId) return;
         try {
             await setDoc(doc(db, 'projects', activeProjectId, 'data', 'documents'), { structure: newDocs });
+            auditLog('update:documents', 'Document structure updated');
         } catch (e) {
             console.error("Error saving docs:", e);
         }
@@ -330,6 +372,7 @@ export const ProjectProvider = ({ children }) => {
             // Optimistic update
             setDocuments(updatedDocs);
             saveDocumentsStructure(updatedDocs);
+            notify('document_upload', `${author} uploaded: ${fileObj.name}`, `/project/${activeProjectId}/documents`);
 
         } catch (error) {
             console.error("Error uploading document:", error);
@@ -353,6 +396,7 @@ export const ProjectProvider = ({ children }) => {
         // Sync to Firestore
         try {
             await updateDoc(doc(db, 'projects', id), { ...newDetails, lastUpdated: new Date().toISOString().split('T')[0] });
+            auditLog('update:project', `Project details updated: ${Object.keys(newDetails).join(', ')}`);
         } catch (e) {
             console.error('Error updating project details:', e);
         }

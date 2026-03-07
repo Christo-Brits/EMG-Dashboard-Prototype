@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ProjectProvider } from './context/ProjectContext';
+import { NotificationProvider } from './context/NotificationContext';
 import Shell from './components/layout/Shell';
 import ProtectedRoute from './components/common/ProtectedRoute';
 import ProjectGuard from './components/common/ProjectGuard';
@@ -20,6 +21,7 @@ import UpdatesTab from './components/project/UpdatesTab';
 import PhotosTab from './components/project/PhotosTab';
 import ActionsTab from './components/project/ActionsTab';
 import DocumentsTab from './components/project/DocumentsTab';
+import FinancialsTab from './components/project/FinancialsTab';
 import QATab from './components/project/QATab';
 
 /** Redirect root based on auth state */
@@ -32,6 +34,7 @@ const AuthRedirect = () => {
 function App() {
   return (
     <AuthProvider>
+      <NotificationProvider>
       <ProjectProvider>
         <Router>
           <Routes>
@@ -59,6 +62,7 @@ function App() {
                 <Route path="photos" element={<PhotosTab />} />
                 <Route path="actions" element={<ActionsTab />} />
                 <Route path="documents" element={<DocumentsTab />} />
+                <Route path="financials" element={<FinancialsTab />} />
                 <Route path="qa" element={<QATab />} />
               </Route>
               <Route path="/question/:id" element={<QADetail />} />
@@ -66,6 +70,7 @@ function App() {
           </Routes>
         </Router>
       </ProjectProvider>
+      </NotificationProvider>
     </AuthProvider>
   );
 }

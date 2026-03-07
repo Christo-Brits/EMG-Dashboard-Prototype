@@ -3,6 +3,7 @@ import { Outlet, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { roleLabel } from '../../utils/permissions';
 import { User, LogOut, LogIn, Settings, Users, FolderOpen, PlusCircle } from 'lucide-react';
+import NotificationBell from '../common/NotificationBell';
 
 const Shell = () => {
     const { user, isAdmin, logout } = useAuth();
@@ -49,6 +50,8 @@ const Shell = () => {
                             </>
                         )}
 
+                        {user && <NotificationBell />}
+
                         {user ? (
                             <div className="flex items-center gap-3 pl-4 border-l border-gray-200">
                                 <Link to="/settings" className="flex items-center gap-2 hover:opacity-80 transition-opacity" title="Account Settings">
@@ -86,7 +89,7 @@ const Shell = () => {
                 <Outlet />
             </main>
             <footer className="h-12 border-t border-[var(--color-border)] bg-white flex items-center justify-center text-sm text-[var(--color-text-secondary)]">
-                &copy; {new Date().getFullYear()} EMG Project Management. All rights reserved.
+                &copy; {new Date().getFullYear()} Ethyl Merc Group Ltd. All rights reserved.
             </footer>
         </div>
     );

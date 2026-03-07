@@ -19,8 +19,12 @@ service cloud.firestore {
     // User profiles
     match /users/{userId} {
       allow read: if isAuth() && (request.auth.uid == userId || isAdmin());
-      allow write: if isAdmin() || (isAuth() && request.auth.uid == userId
+      // Users can create their own profile on first sign-in
+      allow create: if isAuth() && request.auth.uid == userId;
+      // Users can only update their own name; admins can update anything
+      allow update: if isAdmin() || (isAuth() && request.auth.uid == userId
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name']));
+      allow delete: if isAdmin();
     }
 
     // User notifications subcollection
@@ -37,6 +41,15 @@ service cloud.firestore {
       allow update: if isAdmin();
       allow delete: if isAdmin();
 
+      // Variations: stakeholders can approve/decline (update status)
+      match /variations/{variationId} {
+        allow read: if hasProjectAccess(projectId);
+        allow create: if hasProjectAccess(projectId);
+        allow update: if hasProjectAccess(projectId);
+        allow delete: if isAdmin();
+      }
+
+      // All other subcollections (updates, actions, qa, photos, data, financials, invoices)
       match /{subcollection}/{docId} {
         allow read: if hasProjectAccess(projectId);
         allow create: if hasProjectAccess(projectId);
@@ -47,7 +60,12 @@ service cloud.firestore {
     // Pending invites
     match /pending_invites/{inviteId} {
       allow read: if isAdmin() || (isAuth() && resource.data.email == request.auth.token.email);
-      allow create, update, delete: if isAdmin();
+      allow create, delete: if isAdmin();
+      // Allow the invited user to accept their own invite
+      allow update: if isAdmin() ||
+        (isAuth() && resource.data.email == request.auth.token.email
+         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+         && request.resource.data.status == 'accepted');
     }
 
     // Access requests

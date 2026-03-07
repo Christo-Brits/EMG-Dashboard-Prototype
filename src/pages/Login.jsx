@@ -146,21 +146,16 @@ const Login = () => {
                     </button>
                 </form>
 
-                <div className="mt-6 text-center">
-                    <button
-                        onClick={() => {
-                            setError(''); setSuccessMsg('');
-                            if (isResetMode) setIsResetMode(false);
-                            else setIsLoginMode(!isLoginMode);
-                        }}
-                        className="text-sm text-[var(--color-brand-primary)] hover:underline font-medium"
-                    >
-                        {isResetMode
-                            ? "Back to Login"
-                            : (isLoginMode ? "Need an account? Sign up" : "Already have an account? Log in")
-                        }
-                    </button>
-                </div>
+                {isResetMode && (
+                    <div className="mt-6 text-center">
+                        <button
+                            onClick={() => { setError(''); setSuccessMsg(''); setIsResetMode(false); }}
+                            className="text-sm text-[var(--color-brand-primary)] hover:underline font-medium"
+                        >
+                            Back to Login
+                        </button>
+                    </div>
+                )}
 
                 <div className="mt-6 pt-6 border-t border-gray-100 text-center text-xs text-gray-400">
                     By continuing, you agree to the EMG Portal Terms of Service.

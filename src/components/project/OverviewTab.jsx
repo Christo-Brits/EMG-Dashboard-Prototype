@@ -1,15 +1,17 @@
 import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { Info, Target, AlertTriangle, Edit2, X, Check } from 'lucide-react';
+import { Info, Target, AlertTriangle, Edit2, X, Check, Printer } from 'lucide-react';
 import { useProjectData } from '../../context/ProjectContext';
 import { useProjectPermissions } from '../../hooks/useProjectPermissions';
+import MilestoneTimeline from './MilestoneTimeline';
+import { exportProjectSummaryReport } from '../../utils/exportHelpers';
 
 const OverviewTab = () => {
-    const { id } = useParams();
-    const { projects, updateProjectDetails } = useProjectData();
+    const { projectId } = useParams();
+    const { projects, updates, actions, updateProjectDetails } = useProjectData();
     const { canEditProject } = useProjectPermissions();
 
-    const project = projects.find(p => p.id === id);
+    const project = projects.find(p => p.id === projectId);
 
     const [isEditing, setIsEditing] = useState(false);
     const [formData, setFormData] = useState({
@@ -45,14 +47,22 @@ const OverviewTab = () => {
     return (
         <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-300 relative">
 
-            {canEditProject && !isEditing && (
-                <div className="absolute -top-2 right-0">
+            {!isEditing && (
+                <div className="absolute -top-2 right-0 flex gap-2">
                     <button
-                        onClick={() => setIsEditing(true)}
-                        className="text-xs flex items-center gap-1 text-blue-600 hover:text-blue-800 bg-blue-50 px-2 py-1 rounded border border-blue-100 transition-colors"
+                        onClick={() => exportProjectSummaryReport(project, { updates, actions, milestones: project?.milestones || [] })}
+                        className="text-xs flex items-center gap-1 text-gray-500 hover:text-gray-700 bg-gray-50 px-2 py-1 rounded border border-gray-200 transition-colors"
                     >
-                        <Edit2 size={12} /> Edit Details
+                        <Printer size={12} /> Print Report
                     </button>
+                    {canEditProject && (
+                        <button
+                            onClick={() => setIsEditing(true)}
+                            className="text-xs flex items-center gap-1 text-blue-600 hover:text-blue-800 bg-blue-50 px-2 py-1 rounded border border-blue-100 transition-colors"
+                        >
+                            <Edit2 size={12} /> Edit Details
+                        </button>
+                    )}
                 </div>
             )}
 
@@ -132,17 +142,16 @@ const OverviewTab = () => {
                 </div>
             </div>
 
-            {/* Map / Location Placeholder */}
-            <section>
-                <h3 className="text-sm font-medium text-gray-500 mb-2 uppercase tracking-wide">Site Location</h3>
-                <div className="aspect-video bg-gradient-to-br from-slate-100 to-slate-50 rounded-lg flex flex-col items-center justify-center border border-gray-200 text-gray-400 relative overflow-hidden">
-                    <div className="w-12 h-12 rounded-full bg-slate-200 flex items-center justify-center mb-3">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-slate-400"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" /><circle cx="12" cy="10" r="3" /></svg>
-                    </div>
-                    <p className="text-sm font-medium text-gray-500">Map integration available on request</p>
-                    <p className="text-xs text-gray-400 mt-1">Contact your EMG project lead for details</p>
-                </div>
-            </section>
+            {/* Milestone Timeline */}
+            <MilestoneTimeline projectId={projectId} canEdit={canEditProject} />
+
+            {/* Site Location */}
+            {project.location && (
+                <section>
+                    <h3 className="text-sm font-medium text-gray-500 mb-2 uppercase tracking-wide">Site Location</h3>
+                    <p className="text-gray-600">{project.location}</p>
+                </section>
+            )}
 
         </div>
     );

@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import { useProjectData } from '../../context/ProjectContext';
 import { useProjectPermissions } from '../../hooks/useProjectPermissions';
 import { useAuth } from '../../context/AuthContext';
-import { CheckCircle2, Circle, Plus, X, Trash2 } from 'lucide-react';
+import { CheckCircle2, Circle, Plus, X, Trash2, Download } from 'lucide-react';
 import DeleteConfirmModal from '../common/DeleteConfirmModal';
+import { exportActionsCSV } from '../../utils/exportHelpers';
 
 const ActionsTab = () => {
     const { actions, addAction, updateActionStatus, deleteAction } = useProjectData();
@@ -60,7 +61,7 @@ const ActionsTab = () => {
                             <Plus size={16} /> Raise Action
                         </button>
                     )}
-                    <button className="btn btn-outline text-sm">Export List</button>
+                    <button onClick={() => exportActionsCSV(actions, 'project')} className="btn btn-outline text-sm gap-1"><Download size={14} /> Export CSV</button>
                 </div>
             </div>
 

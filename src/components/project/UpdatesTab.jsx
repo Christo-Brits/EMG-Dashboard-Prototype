@@ -24,8 +24,9 @@ const UpdatesTab = () => {
     const handleSubmit = (e) => {
         e.preventDefault();
         if (newUpdate.trim()) {
-            addUpdate(newUpdate, user?.name || 'Unknown');
+            addUpdate(newUpdate, user?.name || 'Unknown', tag);
             setNewUpdate('');
+            setTag('Progress');
             setShowForm(false);
         }
     };
