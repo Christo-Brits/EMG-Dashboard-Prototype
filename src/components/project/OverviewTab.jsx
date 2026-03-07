@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { Info, Target, AlertTriangle, Edit2, X, Check } from 'lucide-react';
+import { Info, Target, AlertTriangle, Edit2, X, Check, Printer } from 'lucide-react';
 import { useProjectData } from '../../context/ProjectContext';
 import { useProjectPermissions } from '../../hooks/useProjectPermissions';
 import MilestoneTimeline from './MilestoneTimeline';
+import { exportProjectSummaryReport } from '../../utils/exportHelpers';
 
 const OverviewTab = () => {
     const { projectId } = useParams();
-    const { projects, updateProjectDetails } = useProjectData();
+    const { projects, updates, actions, updateProjectDetails } = useProjectData();
     const { canEditProject } = useProjectPermissions();
 
     const project = projects.find(p => p.id === projectId);
@@ -46,14 +47,22 @@ const OverviewTab = () => {
     return (
         <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-300 relative">
 
-            {canEditProject && !isEditing && (
-                <div className="absolute -top-2 right-0">
+            {!isEditing && (
+                <div className="absolute -top-2 right-0 flex gap-2">
                     <button
-                        onClick={() => setIsEditing(true)}
-                        className="text-xs flex items-center gap-1 text-blue-600 hover:text-blue-800 bg-blue-50 px-2 py-1 rounded border border-blue-100 transition-colors"
+                        onClick={() => exportProjectSummaryReport(project, { updates, actions, milestones: project?.milestones || [] })}
+                        className="text-xs flex items-center gap-1 text-gray-500 hover:text-gray-700 bg-gray-50 px-2 py-1 rounded border border-gray-200 transition-colors"
                     >
-                        <Edit2 size={12} /> Edit Details
+                        <Printer size={12} /> Print Report
                     </button>
+                    {canEditProject && (
+                        <button
+                            onClick={() => setIsEditing(true)}
+                            className="text-xs flex items-center gap-1 text-blue-600 hover:text-blue-800 bg-blue-50 px-2 py-1 rounded border border-blue-100 transition-colors"
+                        >
+                            <Edit2 size={12} /> Edit Details
+                        </button>
+                    )}
                 </div>
             )}
 

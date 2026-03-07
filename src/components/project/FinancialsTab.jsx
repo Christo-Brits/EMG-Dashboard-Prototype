@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { DollarSign, Plus, Edit2, Check, X, FileText, TrendingUp, AlertCircle, ChevronDown, ChevronUp, Trash2 } from 'lucide-react';
+import { DollarSign, Plus, Edit2, Check, X, FileText, TrendingUp, AlertCircle, ChevronDown, ChevronUp, Trash2, Download, Printer } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useProjectData } from '../../context/ProjectContext';
 import { useProjectPermissions } from '../../hooks/useProjectPermissions';
+import { exportVariationsCSV, exportProjectSummaryReport } from '../../utils/exportHelpers';
 import { db } from '../../config/firebase';
 import {
     doc,
@@ -42,7 +43,7 @@ const fmt = (val) => {
 
 const FinancialsTab = () => {
     const { user } = useAuth();
-    const { activeProjectId } = useProjectData();
+    const { activeProjectId, projects } = useProjectData();
     const { canEditProject, isGlobalAdmin, role } = useProjectPermissions();
 
     // --- State ---
@@ -230,6 +231,21 @@ const FinancialsTab = () => {
         <div className="space-y-6">
             <div className="flex justify-between items-center">
                 <h2 className="text-lg font-semibold text-[var(--color-brand-primary)]">Financials</h2>
+                <div className="flex gap-2">
+                    {variations.length > 0 && (
+                        <button onClick={() => exportVariationsCSV(variations, activeProjectId)} className="btn btn-outline text-xs gap-1">
+                            <Download size={12} /> Export Variations CSV
+                        </button>
+                    )}
+                    {summary && (
+                        <button onClick={() => {
+                            const project = projects.find(p => p.id === activeProjectId);
+                            exportProjectSummaryReport(project, { variations, invoices, summary });
+                        }} className="btn btn-outline text-xs gap-1">
+                            <Printer size={12} /> Print Report
+                        </button>
+                    )}
+                </div>
             </div>
 
             {/* ─── Section A: Contract Summary ─── */}
