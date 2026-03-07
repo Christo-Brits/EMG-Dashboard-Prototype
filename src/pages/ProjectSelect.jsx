@@ -115,13 +115,13 @@ const ProjectSelect = () => {
                         >
                             <div className="flex justify-between items-start">
                                 <div className="flex-1">
-                                    <div className="flex items-center gap-3 mb-1">
-                                        <h3 className="text-lg font-semibold text-[var(--color-brand-primary)] group-hover:text-[var(--color-accent)] transition-colors">
+                                    <div className="flex items-center gap-2 sm:gap-3 mb-1 flex-wrap">
+                                        <h3 className="text-base sm:text-lg font-semibold text-[var(--color-brand-primary)] group-hover:text-[var(--color-accent)] transition-colors">
                                             {project.name}
                                         </h3>
                                         <span className={`badge ${getStatusColor(project.status)}`}>{project.status}</span>
                                     </div>
-                                    <div className="flex items-center gap-4 text-sm text-[var(--color-text-secondary)]">
+                                    <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 text-sm text-[var(--color-text-secondary)]">
                                         {project.location && (
                                             <span className="flex items-center gap-1"><MapPin size={14} /> {project.location}</span>
                                         )}
@@ -130,7 +130,7 @@ const ProjectSelect = () => {
                                         )}
                                     </div>
                                     {project.summary && (
-                                        <p className="text-sm text-gray-500 mt-2 line-clamp-2">{project.summary}</p>
+                                        <p className="text-xs sm:text-sm text-gray-500 mt-2 line-clamp-2">{project.summary}</p>
                                     )}
                                 </div>
                                 <ArrowRight size={20} className="text-gray-300 group-hover:text-[var(--color-accent)] transition-colors mt-1 flex-shrink-0" />

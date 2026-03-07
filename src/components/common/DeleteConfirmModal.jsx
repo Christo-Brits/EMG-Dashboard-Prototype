@@ -64,8 +64,8 @@ const DeleteConfirmModal = ({ isOpen, onClose, onConfirm, title, itemType }) => 
     };
 
     return (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-200">
-            <div className="bg-white rounded-xl shadow-2xl max-w-md w-full border border-gray-100 overflow-hidden transform transition-all scale-100">
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 backdrop-blur-sm animate-in fade-in duration-200">
+            <div className="bg-white rounded-t-xl sm:rounded-xl shadow-2xl max-w-md w-full border border-gray-100 overflow-hidden transform transition-all scale-100 max-h-[90vh] overflow-y-auto">
                 <div className="bg-red-50 p-6 border-b border-red-100 flex items-start gap-4">
                     <div className="bg-red-100 p-2 rounded-full text-red-600 flex-shrink-0">
                         <AlertTriangle size={24} />

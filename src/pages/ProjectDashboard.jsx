@@ -26,13 +26,13 @@ const ProjectDashboard = () => {
     };
 
     const tabs = [
-        { name: 'Overview', path: 'overview' },
-        { name: 'Progress Updates', path: 'updates' },
-        { name: 'Site Photos', path: 'photos' },
-        { name: 'Documents', path: 'documents' },
-        { name: 'Financials', path: 'financials' },
-        { name: 'Actions & Follow-Ups', path: 'actions' },
-        { name: 'Project Questions', path: 'qa' },
+        { name: 'Overview', shortName: 'Overview', path: 'overview' },
+        { name: 'Progress Updates', shortName: 'Updates', path: 'updates' },
+        { name: 'Site Photos', shortName: 'Photos', path: 'photos' },
+        { name: 'Documents', shortName: 'Docs', path: 'documents' },
+        { name: 'Financials', shortName: 'Finance', path: 'financials' },
+        { name: 'Actions & Follow-Ups', shortName: 'Actions', path: 'actions' },
+        { name: 'Project Questions', shortName: 'Q&A', path: 'qa' },
     ];
 
     if (projectsLoading) {
@@ -60,47 +60,48 @@ const ProjectDashboard = () => {
             </div>
 
             {/* Project Header */}
-            <div className="bg-white border border-[var(--color-border)] rounded-t-lg p-6 pb-0">
-                <div className="flex justify-between items-start mb-6">
+            <div className="bg-white border border-[var(--color-border)] rounded-t-lg p-4 sm:p-6 pb-0">
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-6">
                     <div>
-                        <div className="flex items-center gap-3 mb-2">
-                            <h1 className="text-2xl font-bold text-[var(--color-brand-primary)]">{projectName}</h1>
+                        <div className="flex items-center gap-2 sm:gap-3 mb-2 flex-wrap">
+                            <h1 className="text-xl sm:text-2xl font-bold text-[var(--color-brand-primary)]">{projectName}</h1>
                             {projectStatus && <span className={`badge ${getStatusColor(projectStatus)}`}>{projectStatus}</span>}
                         </div>
-                        <p className="text-[var(--color-text-secondary)] text-sm">
+                        <p className="text-[var(--color-text-secondary)] text-xs sm:text-sm">
                             Project ID: {projectId?.toUpperCase()}
-                            {projectLastUpdated && ` • Last updated ${projectLastUpdated}`}
+                            {projectLastUpdated && ` • Updated ${projectLastUpdated}`}
                         </p>
                     </div>
                     {projectClient && (
-                        <div className="text-right hidden sm:block">
-                            <span className="text-xs text-gray-400 block uppercase tracking-wide">Client</span>
-                            <span className="font-medium">{projectClient}</span>
+                        <div className="mt-3 sm:mt-0 text-left sm:text-right">
+                            <span className="text-xs text-gray-400 uppercase tracking-wide">Client</span>
+                            <span className="font-medium text-sm block">{projectClient}</span>
                         </div>
                     )}
                 </div>
 
                 {/* Tabs — horizontal scroll on mobile */}
-                <div className="flex border-b border-gray-200 overflow-x-auto scrollbar-hide">
+                <div className="flex border-b border-gray-200 overflow-x-auto scrollbar-hide -mx-4 sm:-mx-6 px-4 sm:px-6">
                     {tabs.map((tab) => (
                         <NavLink
                             key={tab.path}
                             to={tab.path}
                             className={({ isActive }) =>
-                                `px-6 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${isActive
+                                `px-3 sm:px-6 py-3 text-xs sm:text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${isActive
                                     ? 'border-[var(--color-brand-primary)] text-[var(--color-brand-primary)]'
                                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                                 }`
                             }
                         >
-                            {tab.name}
+                            <span className="hidden sm:inline">{tab.name}</span>
+                            <span className="sm:hidden">{tab.shortName}</span>
                         </NavLink>
                     ))}
                 </div>
             </div>
 
             {/* Content Area */}
-            <div className="bg-white border border-t-0 border-[var(--color-border)] rounded-b-lg p-6 min-h-[500px]">
+            <div className="bg-white border border-t-0 border-[var(--color-border)] rounded-b-lg p-4 sm:p-6 min-h-[500px]">
                 {dataLoading ? (
                     <div className="flex items-center justify-center py-20">
                         <Loader2 size={24} className="animate-spin text-gray-400" />

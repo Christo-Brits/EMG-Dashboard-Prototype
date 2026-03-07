@@ -143,7 +143,7 @@ const PhotosTab = () => {
                     {canUploadFiles && (
                         <button
                             onClick={() => setShowUpload(true)}
-                            className="btn btn-primary text-xs gap-1"
+                            className="btn btn-primary text-xs gap-1 w-full sm:w-auto"
                         >
                             <Plus size={14} /> Upload Photos
                         </button>
@@ -190,7 +190,9 @@ const PhotosTab = () => {
                             <Upload size={16} /> Select Photos
                         </button>
                         <p className="text-xs text-gray-400 mt-2">
-                            or drag and drop · Supports JPEG, PNG, HEIC and more
+                            <span className="hidden sm:inline">or drag and drop · </span>
+                            <span className="sm:hidden">Tap to select photos · </span>
+                            Supports JPEG, PNG, HEIC
                         </p>
                     </div>
 

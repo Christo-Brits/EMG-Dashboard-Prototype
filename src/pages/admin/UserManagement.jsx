@@ -376,8 +376,8 @@ const UserManagement = () => {
                 />
             </div>
 
-            {/* Users table */}
-            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+            {/* Users table — desktop */}
+            <div className="hidden sm:block bg-white rounded-xl border border-gray-200 overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                         <thead>
@@ -437,10 +437,50 @@ const UserManagement = () => {
                 </div>
             </div>
 
+            {/* Users cards — mobile */}
+            <div className="sm:hidden space-y-3">
+                {filteredUsers.map((u) => (
+                    <div key={u.id} className="bg-white rounded-xl border border-gray-200 p-4">
+                        <div className="flex items-start justify-between gap-2">
+                            <div>
+                                <div className="font-medium text-gray-900">{u.name || u.email?.split('@')[0] || 'Unknown'}</div>
+                                <div className="text-xs text-gray-400">{u.email}</div>
+                            </div>
+                            <button
+                                onClick={() => openEdit(u)}
+                                className="text-xs font-medium text-blue-600 hover:text-blue-800 px-2 py-1"
+                            >
+                                Edit
+                            </button>
+                        </div>
+                        <div className="flex items-center gap-2 mt-2 flex-wrap">
+                            <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded ${u.globalRole === 'admin' ? 'bg-slate-800 text-white' : 'bg-gray-100 text-gray-600'}`}>
+                                {u.globalRole === 'admin' && <Shield size={12} />}
+                                {roleLabel(u.globalRole)}
+                            </span>
+                            {u.globalRole === 'admin'
+                                ? <span className="text-xs text-gray-400">All projects</span>
+                                : (u.allowedProjects?.length
+                                    ? u.allowedProjects.map((pid) => (
+                                        <span key={pid} className="inline-flex items-center gap-1 text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded">
+                                            <FolderOpen size={10} />
+                                            {pid}
+                                        </span>
+                                    ))
+                                    : <span className="text-xs text-gray-400">No projects</span>
+                                )}
+                        </div>
+                    </div>
+                ))}
+                {filteredUsers.length === 0 && (
+                    <div className="text-center py-8 text-gray-400">No users found.</div>
+                )}
+            </div>
+
             {/* Edit modal */}
             {editingUser && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-                    <div className="bg-white rounded-xl shadow-xl max-w-lg w-full p-6 max-h-[90vh] overflow-y-auto">
+                <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 p-0 sm:p-4">
+                    <div className="bg-white rounded-t-xl sm:rounded-xl shadow-xl sm:max-w-lg w-full p-6 max-h-[90vh] overflow-y-auto">
                         <div className="flex items-center justify-between mb-4">
                             <h2 className="text-lg font-semibold text-gray-900">Edit User</h2>
                             <button onClick={() => setEditingUser(null)} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>

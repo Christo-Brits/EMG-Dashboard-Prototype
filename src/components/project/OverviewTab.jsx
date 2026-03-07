@@ -48,17 +48,17 @@ const OverviewTab = () => {
         <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-300 relative">
 
             {!isEditing && (
-                <div className="absolute -top-2 right-0 flex gap-2">
+                <div className="flex justify-end gap-2 mb-4 sm:absolute sm:-top-2 sm:right-0 sm:mb-0">
                     <button
                         onClick={() => exportProjectSummaryReport(project, { updates, actions, milestones: project?.milestones || [] })}
-                        className="text-xs flex items-center gap-1 text-gray-500 hover:text-gray-700 bg-gray-50 px-2 py-1 rounded border border-gray-200 transition-colors"
+                        className="text-xs flex items-center gap-1 text-gray-500 hover:text-gray-700 bg-gray-50 px-3 py-2 sm:px-2 sm:py-1 rounded border border-gray-200 transition-colors"
                     >
                         <Printer size={12} /> Print Report
                     </button>
                     {canEditProject && (
                         <button
                             onClick={() => setIsEditing(true)}
-                            className="text-xs flex items-center gap-1 text-blue-600 hover:text-blue-800 bg-blue-50 px-2 py-1 rounded border border-blue-100 transition-colors"
+                            className="text-xs flex items-center gap-1 text-blue-600 hover:text-blue-800 bg-blue-50 px-3 py-2 sm:px-2 sm:py-1 rounded border border-blue-100 transition-colors"
                         >
                             <Edit2 size={12} /> Edit Details
                         </button>
@@ -84,7 +84,7 @@ const OverviewTab = () => {
                         />
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label className="block text-xs font-bold text-blue-800 uppercase mb-1">Current Focus</label>
                             <input

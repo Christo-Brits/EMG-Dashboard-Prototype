@@ -130,18 +130,18 @@ const UpdatesTab = () => {
                                     <div className="h-1.5 w-1.5 rounded-full bg-white"></div>
                                 </div>
 
-                                <div className="ml-12 w-full card p-5 border-gray-200 hover:border-blue-200 transition-colors">
-                                    <div className="flex justify-between items-start mb-2">
-                                        <div className="flex items-center gap-2 text-sm text-[var(--color-text-secondary)]">
+                                <div className="ml-8 sm:ml-12 w-full card p-4 sm:p-5 border-gray-200 hover:border-blue-200 transition-colors">
+                                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-1 sm:gap-0 mb-2">
+                                        <div className="flex items-center gap-2 text-sm text-[var(--color-text-secondary)] flex-wrap">
                                             <span className="font-semibold text-[var(--color-brand-primary)] flex items-center gap-1">
                                                 <User size={14} /> {update.author}
                                             </span>
-                                            <span>•</span>
+                                            <span className="hidden sm:inline">•</span>
                                             <span className="flex items-center gap-1">
                                                 <Calendar size={14} /> {update.date}
                                             </span>
                                         </div>
-                                        <span className="badge badge-neutral bg-gray-100 text-gray-600">{update.tag}</span>
+                                        <span className="badge badge-neutral bg-gray-100 text-gray-600 self-start">{update.tag}</span>
                                     </div>
                                     <p className="text-gray-700 leading-relaxed text-sm">
                                         {editingId === update.id ? (
@@ -173,21 +173,21 @@ const UpdatesTab = () => {
                                             </button>
 
                                             {openMenuId === update.id && (
-                                                <div className="absolute right-0 mt-1 w-32 bg-white border border-gray-200 shadow-lg rounded-md overflow-hidden z-20 animate-in fade-in zoom-in-95 duration-200">
+                                                <div className="absolute right-0 mt-1 w-36 bg-white border border-gray-200 shadow-lg rounded-md overflow-hidden z-20 animate-in fade-in zoom-in-95 duration-200">
                                                     {canEditUpdates && (
                                                         <button
                                                             onClick={() => startEditing(update)}
-                                                            className="w-full text-left px-3 py-2 text-xs flex items-center gap-2 hover:bg-gray-50 text-gray-700"
+                                                            className="w-full text-left px-4 py-3 sm:px-3 sm:py-2 text-sm sm:text-xs flex items-center gap-2 hover:bg-gray-50 text-gray-700"
                                                         >
-                                                            <Edit2 size={12} /> Edit
+                                                            <Edit2 size={14} /> Edit
                                                         </button>
                                                     )}
                                                     {canDeleteItems && (
                                                         <button
                                                             onClick={() => handleDelete(update.id)}
-                                                            className="w-full text-left px-3 py-2 text-xs flex items-center gap-2 hover:bg-red-50 text-red-600"
+                                                            className="w-full text-left px-4 py-3 sm:px-3 sm:py-2 text-sm sm:text-xs flex items-center gap-2 hover:bg-red-50 text-red-600"
                                                         >
-                                                            <Trash2 size={12} /> Delete
+                                                            <Trash2 size={14} /> Delete
                                                         </button>
                                                     )}
                                                 </div>

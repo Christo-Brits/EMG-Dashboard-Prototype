@@ -72,10 +72,10 @@ const Login = () => {
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-            <div className="max-w-md w-full bg-white rounded-xl shadow-lg p-8 border border-gray-100">
+            <div className="max-w-md w-full bg-white rounded-xl shadow-lg p-6 sm:p-8 border border-gray-100">
 
                 <div className="mb-6 text-center sm:text-left">
-                    <img src={`${import.meta.env.BASE_URL}logo.png`} alt="EMG Logo" className="h-12 w-auto mb-6 mx-auto sm:mx-0" />
+                    <img src={`${import.meta.env.BASE_URL}logo.png`} alt="EMG Logo" className="h-10 sm:h-12 w-auto mb-6 mx-auto sm:mx-0" />
                     <h1 className="text-2xl font-bold text-[var(--color-brand-primary)]">EMG Project Portal</h1>
                     <p className="text-gray-500 mt-1">
                         {isResetMode ? 'Reset your password.' : (isLoginMode ? 'Welcome back. Sign in to continue.' : 'Create your account to access the project portal.')}
