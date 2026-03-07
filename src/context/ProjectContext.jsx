@@ -149,11 +149,29 @@ export const ProjectProvider = ({ children }) => {
     // --- Write Functions ---
 
     // Generic helper to add to a subcollection
+    // --- Audit Logging ---
+    const auditLog = async (action, details = '') => {
+        if (!activeProjectId || !user) return;
+        try {
+            await addDoc(collection(db, 'projects', activeProjectId, 'audit_log'), {
+                action,
+                userId: user.uid,
+                userName: user.name || user.email,
+                details,
+                timestamp: new Date(),
+            });
+        } catch (e) {
+            // Audit logging should never block the main operation
+            console.error('Audit log error:', e);
+        }
+    };
+
     const addToCollection = async (collectionName, item) => {
         const newItem = { ...item, id: Date.now() }; // Ensure numeric ID for sort
         if (!activeProjectId) return;
         try {
             await addDoc(collection(db, 'projects', activeProjectId, collectionName), newItem);
+            auditLog(`create:${collectionName}`, JSON.stringify(newItem).slice(0, 200));
         } catch (e) {
             console.error(`Error adding to ${collectionName}:`, e);
             alert("Sync Error: Check your Firebase Config.");
@@ -165,6 +183,7 @@ export const ProjectProvider = ({ children }) => {
         if (!firestoreId || !activeProjectId) return;
         try {
             await deleteDoc(doc(db, 'projects', activeProjectId, collectionName, firestoreId));
+            auditLog(`delete:${collectionName}`, `doc:${firestoreId}`);
         } catch (e) {
             console.error(`Error deleting from ${collectionName}:`, e);
         }
@@ -175,6 +194,7 @@ export const ProjectProvider = ({ children }) => {
         if (!firestoreId || !activeProjectId) return;
         try {
             await updateDoc(doc(db, 'projects', activeProjectId, collectionName, firestoreId), updates);
+            auditLog(`update:${collectionName}`, `doc:${firestoreId} ${JSON.stringify(updates).slice(0, 200)}`);
         } catch (e) {
             console.error(`Error updating ${collectionName}:`, e);
         }
@@ -318,6 +338,7 @@ export const ProjectProvider = ({ children }) => {
         if (!activeProjectId) return;
         try {
             await setDoc(doc(db, 'projects', activeProjectId, 'data', 'documents'), { structure: newDocs });
+            auditLog('update:documents', 'Document structure updated');
         } catch (e) {
             console.error("Error saving docs:", e);
         }
@@ -375,6 +396,7 @@ export const ProjectProvider = ({ children }) => {
         // Sync to Firestore
         try {
             await updateDoc(doc(db, 'projects', id), { ...newDetails, lastUpdated: new Date().toISOString().split('T')[0] });
+            auditLog('update:project', `Project details updated: ${Object.keys(newDetails).join(', ')}`);
         } catch (e) {
             console.error('Error updating project details:', e);
         }
