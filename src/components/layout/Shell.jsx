@@ -89,7 +89,7 @@ const Shell = () => {
                 <Outlet />
             </main>
             <footer className="h-12 border-t border-[var(--color-border)] bg-white flex items-center justify-center text-sm text-[var(--color-text-secondary)]">
-                &copy; {new Date().getFullYear()} EMG Project Management. All rights reserved.
+                &copy; {new Date().getFullYear()} Ethyl Merc Group Ltd. All rights reserved.
             </footer>
         </div>
     );

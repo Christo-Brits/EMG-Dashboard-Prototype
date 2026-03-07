@@ -145,17 +145,13 @@ const OverviewTab = () => {
             {/* Milestone Timeline */}
             <MilestoneTimeline projectId={projectId} canEdit={canEditProject} />
 
-            {/* Map / Location Placeholder */}
-            <section>
-                <h3 className="text-sm font-medium text-gray-500 mb-2 uppercase tracking-wide">Site Location</h3>
-                <div className="aspect-video bg-gradient-to-br from-slate-100 to-slate-50 rounded-lg flex flex-col items-center justify-center border border-gray-200 text-gray-400 relative overflow-hidden">
-                    <div className="w-12 h-12 rounded-full bg-slate-200 flex items-center justify-center mb-3">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-slate-400"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" /><circle cx="12" cy="10" r="3" /></svg>
-                    </div>
-                    <p className="text-sm font-medium text-gray-500">Map integration available on request</p>
-                    <p className="text-xs text-gray-400 mt-1">Contact your EMG project lead for details</p>
-                </div>
-            </section>
+            {/* Site Location */}
+            {project.location && (
+                <section>
+                    <h3 className="text-sm font-medium text-gray-500 mb-2 uppercase tracking-wide">Site Location</h3>
+                    <p className="text-gray-600">{project.location}</p>
+                </section>
+            )}
 
         </div>
     );

@@ -257,9 +257,14 @@ const DocumentsTab = () => {
                                     <div key={file.id} className="grid grid-cols-12 items-center py-2.5 px-4 bg-slate-50/30 hover:bg-blue-50/30 border-l-4 border-l-transparent hover:border-l-blue-400 transition-all pl-12 group/file">
                                         <div className="col-span-6 flex items-center gap-3">
                                             <FileText size={16} className="text-gray-400" />
-                                            <span className="text-sm text-gray-600 hover:text-gray-900 hover:underline cursor-pointer truncate mr-2">
+                                            <a
+                                                href={file.url}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="text-sm text-gray-600 hover:text-blue-600 hover:underline cursor-pointer truncate mr-2"
+                                            >
                                                 {file.name}
-                                            </span>
+                                            </a>
 
                                             {canDeleteFiles && (
                                                 <button
