@@ -50,7 +50,7 @@ const ActionsTab = () => {
 
     return (
         <div className="max-w-5xl mx-auto">
-            <div className="flex justify-between items-center mb-6">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-6">
                 <h2 className="text-lg font-semibold text-[var(--color-brand-primary)]">Actions & Follow-Ups</h2>
                 <div className="flex gap-2">
                     {canRaiseActions && (
@@ -61,7 +61,7 @@ const ActionsTab = () => {
                             <Plus size={16} /> Raise Action
                         </button>
                     )}
-                    <button onClick={() => exportActionsCSV(actions, 'project')} className="btn btn-outline text-sm gap-1"><Download size={14} /> Export CSV</button>
+                    <button onClick={() => exportActionsCSV(actions, 'project')} className="btn btn-outline text-sm gap-1"><Download size={14} /> <span className="hidden sm:inline">Export</span> CSV</button>
                 </div>
             </div>
 
@@ -130,7 +130,9 @@ const ActionsTab = () => {
                     <p className="text-xs text-gray-400">Action items and follow-ups will appear here</p>
                 </div>
             ) : (
-                <div className="overflow-hidden border border-gray-200 rounded-lg shadow-sm">
+                <>
+                {/* Desktop table — hidden on mobile */}
+                <div className="hidden sm:block overflow-hidden border border-gray-200 rounded-lg shadow-sm">
                     <table className="w-full text-sm text-left">
                         <thead className="bg-gray-50 text-gray-500 font-medium border-b border-gray-200">
                             <tr>
@@ -181,6 +183,38 @@ const ActionsTab = () => {
                         </tbody>
                     </table>
                 </div>
+
+                {/* Mobile cards — shown only on mobile */}
+                <div className="sm:hidden space-y-3">
+                    {actions.map(action => (
+                        <div key={action.id} className="card p-4">
+                            <div className="flex items-start justify-between gap-2">
+                                <p className="text-sm font-medium text-gray-800 flex-1">{action.task}</p>
+                                <button
+                                    onClick={() => toggleStatus(action.id, action.status)}
+                                    className={`flex-shrink-0 ${canToggleActionStatus ? 'cursor-pointer' : 'cursor-default'}`}
+                                    disabled={!canToggleActionStatus}
+                                >
+                                    {getStatusBadge(action.status)}
+                                </button>
+                            </div>
+                            <div className="flex items-center gap-3 mt-2 text-xs text-gray-500">
+                                <span className="bg-slate-100 text-slate-700 px-2 py-0.5 rounded">{action.assignedTo}</span>
+                                <span>Due: {action.dueDate}</span>
+                                {canDeleteItems && (
+                                    <button
+                                        onClick={() => confirmDelete(action.id)}
+                                        className="text-red-300 hover:text-red-600 ml-auto"
+                                        title="Delete Action"
+                                    >
+                                        <Trash2 size={14} />
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+                </>
             )}
         </div>
     );

@@ -41,15 +41,15 @@ const QATab = () => {
 
     return (
         <div className="max-w-4xl mx-auto">
-            <div className="flex justify-between items-center mb-6">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-6">
                 <div>
                     <h2 className="text-lg font-semibold text-[var(--color-brand-primary)]">Project Questions</h2>
-                    <p className="text-sm text-[var(--color-text-secondary)]">Queries and clarifications shared across the project team</p>
+                    <p className="text-xs sm:text-sm text-[var(--color-text-secondary)]">Queries and clarifications shared across the project team</p>
                 </div>
                 {canAskQuestions && (
                     <button
                         onClick={() => setShowForm(!showForm)}
-                        className="btn btn-primary text-sm gap-2"
+                        className="btn btn-primary text-sm gap-2 w-full sm:w-auto"
                     >
                         <HelpCircle size={16} />
                         Raise Question
@@ -128,23 +128,21 @@ const QATab = () => {
                 <div className="space-y-4">
                     {qa.map((item) => (
                         <Link key={item.id} to={`/question/${item.id}`} className="block relative group">
-                            <div className="card p-5 border-gray-200 hover:border-[var(--color-accent)] hover:shadow-md transition-all cursor-pointer animate-in fade-in">
-                                <div className="flex justify-between items-start mb-2">
-                                    <div className="flex items-center gap-3">
-                                        <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${item.status === 'Answered' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
-                                            {item.status}
-                                        </span>
-                                        <span className="text-xs text-gray-400 font-medium border border-gray-100 px-2 py-0.5 rounded-full bg-white">{item.category}</span>
-                                    </div>
-                                    <span className="text-xs text-gray-400">{item.date}</span>
+                            <div className="card p-4 sm:p-5 border-gray-200 hover:border-[var(--color-accent)] hover:shadow-md transition-all cursor-pointer animate-in fade-in">
+                                <div className="flex flex-wrap items-center gap-2 mb-2">
+                                    <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${item.status === 'Answered' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
+                                        {item.status}
+                                    </span>
+                                    <span className="text-xs text-gray-400 font-medium border border-gray-100 px-2 py-0.5 rounded-full bg-white">{item.category}</span>
+                                    <span className="text-xs text-gray-400 ml-auto">{item.date}</span>
                                 </div>
 
-                                <h3 className="text-lg font-semibold text-[var(--color-brand-primary)] group-hover:text-[var(--color-accent)] mb-2 flex items-center justify-between">
+                                <h3 className="text-base sm:text-lg font-semibold text-[var(--color-brand-primary)] group-hover:text-[var(--color-accent)] mb-2 flex items-center justify-between">
                                     {item.title}
-                                    <ChevronRight className="opacity-0 group-hover:opacity-100 transition-opacity text-[var(--color-accent)]" size={20} />
+                                    <ChevronRight className="opacity-0 group-hover:opacity-100 transition-opacity text-[var(--color-accent)] flex-shrink-0" size={20} />
                                 </h3>
 
-                                <p className="text-gray-600 text-sm line-clamp-2 mb-4">
+                                <p className="text-gray-600 text-xs sm:text-sm line-clamp-2 mb-4">
                                     {item.context}
                                 </p>
 

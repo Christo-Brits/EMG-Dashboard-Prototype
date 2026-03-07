@@ -23,8 +23,8 @@ const UploadModal = ({ isOpen, onClose, folders, onUpload }) => {
     };
 
     return (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
-            <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200">
+            <div className="bg-white rounded-t-xl sm:rounded-lg shadow-xl w-full sm:max-w-md max-h-[90vh] overflow-y-auto">
                 <div className="flex justify-between items-center p-4 border-b border-gray-100">
                     <h3 className="font-semibold text-gray-800">Upload Document</h3>
                     <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
@@ -147,15 +147,15 @@ const DocumentsTab = () => {
             />
 
             {/* Calm Header Line */}
-            <div className="bg-blue-50/50 border border-blue-100 p-4 rounded-lg mb-6 flex items-start sm:items-center justify-between gap-4">
-                <p className="text-sm text-blue-800">
+            <div className="bg-blue-50/50 border border-blue-100 p-3 sm:p-4 rounded-lg mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <p className="text-xs sm:text-sm text-blue-800">
                     Project documentation is stored centrally for version control and transparency.
                 </p>
                 {canUploadFiles && (
                     <button
                         onClick={() => setUploadModalOpen(true)}
                         disabled={isUploading}
-                        className="btn btn-outline bg-white text-xs whitespace-nowrap gap-2 hover:bg-blue-50 border-blue-200 text-blue-700 disabled:opacity-50"
+                        className="btn btn-outline bg-white text-xs whitespace-nowrap gap-2 hover:bg-blue-50 border-blue-200 text-blue-700 disabled:opacity-50 w-full sm:w-auto"
                     >
                         {isUploading ? <span className="animate-pulse">Uploading...</span> : <><Upload size={14} /> Upload Document</>}
                     </button>
@@ -164,7 +164,7 @@ const DocumentsTab = () => {
 
             {/* Google Drive Link */}
             {(project?.driveUrl || canEditProject) && (
-                <div className="border border-gray-200 rounded-lg p-4 mb-6 flex items-center justify-between gap-4 bg-white">
+                <div className="border border-gray-200 rounded-lg p-3 sm:p-4 mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white">
                     <div className="flex items-center gap-3">
                         <div className="h-9 w-9 rounded-lg bg-yellow-50 border border-yellow-200 flex items-center justify-center flex-shrink-0">
                             <svg width="18" height="18" viewBox="0 0 87.3 78" xmlns="http://www.w3.org/2000/svg">
@@ -222,7 +222,8 @@ const DocumentsTab = () => {
                 </div>
             ) : (
             <div className="border border-gray-200 rounded-lg overflow-hidden bg-white shadow-sm">
-                <div className="grid grid-cols-12 bg-gray-50 border-b border-gray-200 text-xs font-semibold text-gray-500 uppercase tracking-wider py-3 px-4">
+                {/* Table header — desktop only */}
+                <div className="hidden sm:grid grid-cols-12 bg-gray-50 border-b border-gray-200 text-xs font-semibold text-gray-500 uppercase tracking-wider py-3 px-4">
                     <div className="col-span-6">File Name</div>
                     <div className="col-span-2">Type</div>
                     <div className="col-span-2">Uploaded By</div>
@@ -237,48 +238,76 @@ const DocumentsTab = () => {
                                 {/* Folder Row */}
                                 <div
                                     onClick={() => toggleFolder(folder.id)}
-                                    className="grid grid-cols-12 items-center py-3 px-4 hover:bg-gray-50 cursor-pointer transition-colors group"
+                                    className="flex items-center gap-3 py-3 px-4 hover:bg-gray-50 cursor-pointer transition-colors group"
                                 >
-                                    <div className="col-span-6 flex items-center gap-3">
-                                        <span className="text-gray-400 group-hover:text-gray-600">
-                                            {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                                        </span>
-                                        <Folder size={18} className="text-amber-400 fill-amber-100" />
-                                        <span className="font-semibold text-gray-700 text-sm group-hover:text-blue-700">{folder.name}</span>
-                                        <span className="text-xs text-gray-400 font-normal">({folder.items.length})</span>
-                                    </div>
-                                    <div className="col-span-2 text-xs text-gray-400 font-medium">Folder</div>
-                                    <div className="col-span-2 text-xs text-gray-400">-</div>
-                                    <div className="col-span-2 text-xs text-gray-400 text-right">-</div>
+                                    <span className="text-gray-400 group-hover:text-gray-600">
+                                        {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                                    </span>
+                                    <Folder size={18} className="text-amber-400 fill-amber-100" />
+                                    <span className="font-semibold text-gray-700 text-sm group-hover:text-blue-700 flex-1">{folder.name}</span>
+                                    <span className="text-xs text-gray-400">({folder.items.length})</span>
                                 </div>
 
                                 {/* File Rows (if expanded) */}
                                 {isExpanded && folder.items.map(file => (
-                                    <div key={file.id} className="grid grid-cols-12 items-center py-2.5 px-4 bg-slate-50/30 hover:bg-blue-50/30 border-l-4 border-l-transparent hover:border-l-blue-400 transition-all pl-12 group/file">
-                                        <div className="col-span-6 flex items-center gap-3">
-                                            <FileText size={16} className="text-gray-400" />
-                                            <a
-                                                href={file.url}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="text-sm text-gray-600 hover:text-blue-600 hover:underline cursor-pointer truncate mr-2"
-                                            >
-                                                {file.name}
-                                            </a>
-
-                                            {canDeleteFiles && (
-                                                <button
-                                                    onClick={(e) => confirmDelete(e, file.id)}
-                                                    className="text-gray-300 hover:text-red-500 opacity-0 group-hover/file:opacity-100 transition-all p-1"
-                                                    title="Delete Document"
+                                    <div key={file.id} className="py-3 px-4 pl-10 sm:pl-12 border-l-4 border-l-transparent hover:border-l-blue-400 transition-all hover:bg-blue-50/30 group/file">
+                                        {/* Desktop: grid layout */}
+                                        <div className="hidden sm:grid grid-cols-12 items-center">
+                                            <div className="col-span-6 flex items-center gap-3">
+                                                <FileText size={16} className="text-gray-400" />
+                                                <a
+                                                    href={file.url}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="text-sm text-gray-600 hover:text-blue-600 hover:underline truncate"
                                                 >
-                                                    <Trash2 size={14} />
-                                                </button>
-                                            )}
+                                                    {file.name}
+                                                </a>
+                                                {canDeleteFiles && (
+                                                    <button
+                                                        onClick={(e) => confirmDelete(e, file.id)}
+                                                        className="text-gray-300 hover:text-red-500 opacity-0 group-hover/file:opacity-100 transition-all p-1"
+                                                        title="Delete Document"
+                                                    >
+                                                        <Trash2 size={14} />
+                                                    </button>
+                                                )}
+                                            </div>
+                                            <div className="col-span-2 text-xs text-gray-500 font-mono bg-gray-100 inline-block px-1.5 py-0.5 rounded w-fit">{file.type}</div>
+                                            <div className="col-span-2 text-xs text-gray-500">{file.author}</div>
+                                            <div className="col-span-2 text-xs text-gray-500 text-right font-medium">{file.date}</div>
                                         </div>
-                                        <div className="col-span-2 text-xs text-gray-500 font-mono bg-gray-100 inline-block px-1.5 py-0.5 rounded w-fit">{file.type}</div>
-                                        <div className="col-span-2 text-xs text-gray-500">{file.author}</div>
-                                        <div className="col-span-2 text-xs text-gray-500 text-right font-medium">{file.date}</div>
+
+                                        {/* Mobile: stacked layout */}
+                                        <div className="sm:hidden">
+                                            <div className="flex items-center gap-2">
+                                                <FileText size={14} className="text-gray-400 flex-shrink-0" />
+                                                <a
+                                                    href={file.url}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="text-sm text-gray-700 hover:text-blue-600 truncate font-medium"
+                                                >
+                                                    {file.name}
+                                                </a>
+                                                {canDeleteFiles && (
+                                                    <button
+                                                        onClick={(e) => confirmDelete(e, file.id)}
+                                                        className="text-gray-300 hover:text-red-500 p-1 ml-auto flex-shrink-0"
+                                                        title="Delete Document"
+                                                    >
+                                                        <Trash2 size={14} />
+                                                    </button>
+                                                )}
+                                            </div>
+                                            <div className="flex items-center gap-3 mt-1 ml-6 text-xs text-gray-400">
+                                                <span>{file.type}</span>
+                                                <span>&middot;</span>
+                                                <span>{file.author}</span>
+                                                <span>&middot;</span>
+                                                <span>{file.date}</span>
+                                            </div>
+                                        </div>
                                     </div>
                                 ))}
                             </React.Fragment>

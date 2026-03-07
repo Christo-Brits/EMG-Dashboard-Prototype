@@ -135,7 +135,7 @@ const CreateProject = () => {
                     <p className="text-xs text-gray-400 mt-1">Used in the URL. Lowercase letters, numbers, and hyphens only.</p>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
                         <select
@@ -184,7 +184,7 @@ const CreateProject = () => {
                     />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Current Focus</label>
                         <input
