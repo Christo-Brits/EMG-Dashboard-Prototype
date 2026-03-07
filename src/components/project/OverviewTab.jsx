@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { Info, Target, AlertTriangle, Edit2, X, Check } from 'lucide-react';
 import { useProjectData } from '../../context/ProjectContext';
 import { useProjectPermissions } from '../../hooks/useProjectPermissions';
+import MilestoneTimeline from './MilestoneTimeline';
 
 const OverviewTab = () => {
     const { projectId } = useParams();
@@ -131,6 +132,9 @@ const OverviewTab = () => {
                     <p className="text-gray-600 text-sm">{project.coordination}</p>
                 </div>
             </div>
+
+            {/* Milestone Timeline */}
+            <MilestoneTimeline projectId={projectId} canEdit={canEditProject} />
 
             {/* Map / Location Placeholder */}
             <section>
