@@ -41,6 +41,15 @@ service cloud.firestore {
       allow update: if isAdmin();
       allow delete: if isAdmin();
 
+      // Variations: stakeholders can approve/decline (update status)
+      match /variations/{variationId} {
+        allow read: if hasProjectAccess(projectId);
+        allow create: if hasProjectAccess(projectId);
+        allow update: if hasProjectAccess(projectId);
+        allow delete: if isAdmin();
+      }
+
+      // All other subcollections (updates, actions, qa, photos, data, financials, invoices)
       match /{subcollection}/{docId} {
         allow read: if hasProjectAccess(projectId);
         allow create: if hasProjectAccess(projectId);

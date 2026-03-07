@@ -30,6 +30,7 @@ const ProjectDashboard = () => {
         { name: 'Progress Updates', path: 'updates' },
         { name: 'Site Photos', path: 'photos' },
         { name: 'Documents', path: 'documents' },
+        { name: 'Financials', path: 'financials' },
         { name: 'Actions & Follow-Ups', path: 'actions' },
         { name: 'Project Questions', path: 'qa' },
     ];

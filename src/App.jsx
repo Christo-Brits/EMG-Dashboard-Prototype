@@ -21,6 +21,7 @@ import UpdatesTab from './components/project/UpdatesTab';
 import PhotosTab from './components/project/PhotosTab';
 import ActionsTab from './components/project/ActionsTab';
 import DocumentsTab from './components/project/DocumentsTab';
+import FinancialsTab from './components/project/FinancialsTab';
 import QATab from './components/project/QATab';
 
 /** Redirect root based on auth state */
@@ -61,6 +62,7 @@ function App() {
                 <Route path="photos" element={<PhotosTab />} />
                 <Route path="actions" element={<ActionsTab />} />
                 <Route path="documents" element={<DocumentsTab />} />
+                <Route path="financials" element={<FinancialsTab />} />
                 <Route path="qa" element={<QATab />} />
               </Route>
               <Route path="/question/:id" element={<QADetail />} />
