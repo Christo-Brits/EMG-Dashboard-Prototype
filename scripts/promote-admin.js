@@ -9,7 +9,7 @@
  */
 
 import { initializeApp } from 'firebase-admin/app';
-import { getFirestore } from 'firebase-admin/firestore';
+import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 
 const email = process.argv[2];
 if (!email) {
@@ -57,7 +57,7 @@ async function promote() {
     // Add user to each project's teamMembers
     for (const pid of allProjectIds) {
         await db.collection('projects').doc(pid).update({
-            teamMembers: require('firebase-admin/firestore').FieldValue.arrayUnion(uid),
+            teamMembers: FieldValue.arrayUnion(uid),
         });
     }
 
