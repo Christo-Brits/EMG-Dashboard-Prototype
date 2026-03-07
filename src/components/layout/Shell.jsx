@@ -3,6 +3,7 @@ import { Outlet, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { roleLabel } from '../../utils/permissions';
 import { User, LogOut, LogIn, Settings, Users, FolderOpen, PlusCircle } from 'lucide-react';
+import NotificationBell from '../common/NotificationBell';
 
 const Shell = () => {
     const { user, isAdmin, logout } = useAuth();
@@ -48,6 +49,8 @@ const Shell = () => {
                                 </Link>
                             </>
                         )}
+
+                        {user && <NotificationBell />}
 
                         {user ? (
                             <div className="flex items-center gap-3 pl-4 border-l border-gray-200">

@@ -14,6 +14,7 @@ import {
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useAuth } from './AuthContext';
+import { useNotifications } from './NotificationContext';
 
 const ProjectContext = createContext();
 
@@ -28,6 +29,7 @@ const DEFAULT_FOLDERS = [
 
 export const ProjectProvider = ({ children }) => {
     const { user, isAdmin } = useAuth();
+    const { notifyProjectTeam } = useNotifications() || {};
 
     const [activeProjectId, setActiveProjectId] = useState(null);
     const [projects, setProjects] = useState([]);
@@ -186,6 +188,15 @@ export const ProjectProvider = ({ children }) => {
         return await getDownloadURL(storageRef);
     };
 
+    // --- Notification helper ---
+    const getProjectName = () => projects.find(p => p.id === activeProjectId)?.name || activeProjectId;
+
+    const notify = (type, message, link) => {
+        if (notifyProjectTeam && activeProjectId) {
+            notifyProjectTeam(activeProjectId, getProjectName(), { type, message, link }).catch(() => {});
+        }
+    };
+
     // --- Specific Add Functions ---
 
     const addUpdate = (content, author, tag = 'Progress') => {
@@ -202,6 +213,7 @@ export const ProjectProvider = ({ children }) => {
             tag,
             type: 'progress'
         });
+        notify('update', `${author} posted an update on ${getProjectName()}`, `/project/${activeProjectId}/updates`);
     };
     const deleteUpdate = (id) => {
         const item = updates.find(u => u.id === id);
@@ -220,6 +232,7 @@ export const ProjectProvider = ({ children }) => {
             dueDate,
             status: 'Open'
         });
+        notify('action_assigned', `New action: ${task}`, `/project/${activeProjectId}/actions`);
     };
     const updateActionStatus = (id, status) => {
         const item = actions.find(a => a.id === id);
@@ -244,6 +257,8 @@ export const ProjectProvider = ({ children }) => {
             replies: [],
             date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
         });
+        const title = typeof questionData === 'string' ? questionData : questionData.title;
+        notify('qa_question', `New question: ${title}`, `/project/${activeProjectId}/qa`);
     };
 
     const addReply = (questionId, replyContent, author) => {
@@ -259,6 +274,7 @@ export const ProjectProvider = ({ children }) => {
             };
             const updatedReplies = [...thread.replies, newReply];
             updateInCollection('qa', thread.firestoreId, { replies: updatedReplies, status: 'Answered' });
+            notify('qa_answer', `${author} answered: ${thread.title || 'a question'}`, `/project/${activeProjectId}/qa`);
         }
     };
 
@@ -286,6 +302,7 @@ export const ProjectProvider = ({ children }) => {
                 date: new Date().toLocaleDateString(),
                 timestamp: Date.now()
             });
+            notify('photo_upload', `${author} uploaded a photo to ${getProjectName()}`, `/project/${activeProjectId}/photos`);
         } catch (error) {
             console.error("Error uploading photo:", error);
             alert("Failed to upload photo.");
@@ -334,6 +351,7 @@ export const ProjectProvider = ({ children }) => {
             // Optimistic update
             setDocuments(updatedDocs);
             saveDocumentsStructure(updatedDocs);
+            notify('document_upload', `${author} uploaded: ${fileObj.name}`, `/project/${activeProjectId}/documents`);
 
         } catch (error) {
             console.error("Error uploading document:", error);

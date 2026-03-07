@@ -28,5 +28,6 @@ export function useProjectPermissions() {
         canAskQuestions: perms.canAskQuestions(role),
         canReplyToQuestions: perms.canReplyToQuestions(role),
         canEditProject: perms.canEditProject(role),
+        canManageUsers: perms.canManageUsers(role),
     };
 }

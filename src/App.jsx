@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ProjectProvider } from './context/ProjectContext';
+import { NotificationProvider } from './context/NotificationContext';
 import Shell from './components/layout/Shell';
 import ProtectedRoute from './components/common/ProtectedRoute';
 import ProjectGuard from './components/common/ProjectGuard';
@@ -32,6 +33,7 @@ const AuthRedirect = () => {
 function App() {
   return (
     <AuthProvider>
+      <NotificationProvider>
       <ProjectProvider>
         <Router>
           <Routes>
@@ -66,6 +68,7 @@ function App() {
           </Routes>
         </Router>
       </ProjectProvider>
+      </NotificationProvider>
     </AuthProvider>
   );
 }
