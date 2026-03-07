@@ -5,11 +5,11 @@ import { useProjectData } from '../../context/ProjectContext';
 import { useProjectPermissions } from '../../hooks/useProjectPermissions';
 
 const OverviewTab = () => {
-    const { id } = useParams();
+    const { projectId } = useParams();
     const { projects, updateProjectDetails } = useProjectData();
     const { canEditProject } = useProjectPermissions();
 
-    const project = projects.find(p => p.id === id);
+    const project = projects.find(p => p.id === projectId);
 
     const [isEditing, setIsEditing] = useState(false);
     const [formData, setFormData] = useState({

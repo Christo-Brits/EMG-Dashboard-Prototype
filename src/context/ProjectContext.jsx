@@ -188,17 +188,18 @@ export const ProjectProvider = ({ children }) => {
 
     // --- Specific Add Functions ---
 
-    const addUpdate = (text, author) => {
+    const addUpdate = (content, author, tag = 'Progress') => {
         const timestamp = new Date().toLocaleString('en-US', {
             weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
         });
         const date = new Date().toISOString().split('T')[0];
 
         addToCollection('updates', {
-            text,
+            content,
             author,
             timestamp,
             date,
+            tag,
             type: 'progress'
         });
     };
@@ -212,10 +213,10 @@ export const ProjectProvider = ({ children }) => {
     };
 
     // --- Actions ---
-    const addAction = (text, assignee, dueDate) => {
+    const addAction = (task, assignedTo, dueDate) => {
         addToCollection('actions', {
-            text,
-            assignee,
+            task,
+            assignedTo,
             dueDate,
             status: 'Open'
         });
@@ -230,10 +231,14 @@ export const ProjectProvider = ({ children }) => {
     };
 
     // --- Q&A ---
-    // --- Q&A ---
-    const addQuestion = (question, author) => {
+    const addQuestion = (questionData, author) => {
+        // questionData can be a string (legacy) or an object { title, context, category }
+        const fields = typeof questionData === 'string'
+            ? { question: questionData }
+            : { title: questionData.title, context: questionData.context, category: questionData.category };
+
         addToCollection('qa', {
-            question,
+            ...fields,
             author,
             status: 'Open',
             replies: [],
@@ -262,7 +267,6 @@ export const ProjectProvider = ({ children }) => {
         if (item) deleteFromCollection('qa', item.firestoreId);
     };
 
-    // --- Photos ---
     // --- Photos ---
     const addPhoto = async (file, caption, author) => {
         if (!activeProjectId) return;
