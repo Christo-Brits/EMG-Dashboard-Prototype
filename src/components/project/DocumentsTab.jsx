@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Folder, FileText, Upload, ChevronRight, ChevronDown, Trash2, X } from 'lucide-react';
+import { Folder, FileText, Upload, ChevronRight, ChevronDown, Trash2, X, ExternalLink, Edit2, Check } from 'lucide-react';
+import { useParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useProjectData } from '../../context/ProjectContext';
 import { useProjectPermissions } from '../../hooks/useProjectPermissions';
@@ -74,12 +75,16 @@ const UploadModal = ({ isOpen, onClose, folders, onUpload }) => {
 
 const DocumentsTab = () => {
     const { user } = useAuth();
-    const { canUploadFiles, canDeleteFiles } = useProjectPermissions();
+    const { canUploadFiles, canDeleteFiles, canEditProject } = useProjectPermissions();
+    const { projectId } = useParams();
 
     // Use Context Data
-    const { documents, addDocument, deleteDocument } = useProjectData();
+    const { documents, addDocument, deleteDocument, projects, updateProjectDetails } = useProjectData();
+    const project = projects.find(p => p.id === projectId);
 
     const [expandedFolders, setExpandedFolders] = useState(['folder-1', 'folder-2', 'folder-3', 'folder-4']);
+    const [editingDriveUrl, setEditingDriveUrl] = useState(false);
+    const [driveUrlInput, setDriveUrlInput] = useState('');
 
     // Modal States
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -156,6 +161,56 @@ const DocumentsTab = () => {
                     </button>
                 )}
             </div>
+
+            {/* Google Drive Link */}
+            {(project?.driveUrl || canEditProject) && (
+                <div className="border border-gray-200 rounded-lg p-4 mb-6 flex items-center justify-between gap-4 bg-white">
+                    <div className="flex items-center gap-3">
+                        <div className="h-9 w-9 rounded-lg bg-yellow-50 border border-yellow-200 flex items-center justify-center flex-shrink-0">
+                            <svg width="18" height="18" viewBox="0 0 87.3 78" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M6.6 66.85L3.3 61.5 29.7 16.5l3.4 5.5z" fill="#0066DA"/>
+                                <path d="M57.6 66.85H24.4l13.1-22.5h33.2z" fill="#00AC47"/>
+                                <path d="M43.65 0L57.6 23.5 31.2 68.5l-13.9-23.5z" fill="#EA4335"/>
+                                <path d="M43.65 0L57.6 23.5H84l-13.9-23.5z" fill="#00832D"/>
+                                <path d="M70.7 44.35L84 67.85H57.6l13.1-23.5z" fill="#2684FC"/>
+                                <path d="M29.7 16.5l13.95 23.85L30.55 66.85 3.3 61.5z" fill="#FFBA00"/>
+                            </svg>
+                        </div>
+                        {editingDriveUrl ? (
+                            <div className="flex items-center gap-2 flex-1">
+                                <input
+                                    className="flex-1 border border-gray-200 rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400"
+                                    placeholder="https://drive.google.com/drive/folders/..."
+                                    value={driveUrlInput}
+                                    onChange={(e) => setDriveUrlInput(e.target.value)}
+                                    autoFocus
+                                />
+                                <button onClick={() => { updateProjectDetails(projectId, { driveUrl: driveUrlInput }); setEditingDriveUrl(false); }} className="btn btn-primary text-xs gap-1"><Check size={12} /> Save</button>
+                                <button onClick={() => setEditingDriveUrl(false)} className="btn btn-outline text-xs"><X size={12} /></button>
+                            </div>
+                        ) : project?.driveUrl ? (
+                            <div className="flex items-center gap-2">
+                                <span className="text-sm text-gray-600">Shared Google Drive folder</span>
+                                {canEditProject && (
+                                    <button onClick={() => { setDriveUrlInput(project.driveUrl || ''); setEditingDriveUrl(true); }} className="text-gray-300 hover:text-gray-500"><Edit2 size={12} /></button>
+                                )}
+                            </div>
+                        ) : (
+                            <span className="text-sm text-gray-400">No Google Drive folder linked</span>
+                        )}
+                    </div>
+                    {!editingDriveUrl && project?.driveUrl && (
+                        <a href={project.driveUrl} target="_blank" rel="noopener noreferrer" className="btn btn-outline text-xs gap-1.5 whitespace-nowrap">
+                            <ExternalLink size={12} /> Open in Google Drive
+                        </a>
+                    )}
+                    {!editingDriveUrl && !project?.driveUrl && canEditProject && (
+                        <button onClick={() => { setDriveUrlInput(''); setEditingDriveUrl(true); }} className="btn btn-outline text-xs gap-1">
+                            <Edit2 size={12} /> Link Drive Folder
+                        </button>
+                    )}
+                </div>
+            )}
 
             {documents.length === 0 || documents.every(f => f.items.length === 0) ? (
                 <div className="text-center py-16 text-gray-400">
